@@ -4,7 +4,7 @@
 # 用法：scripts/generate-config.sh
 #
 # 生成：
-#   boot.ipxe       由 web/boot.ipxe.template 替换 ${PXE_SERVER_IP} 与 ${HTTP_PORT}。
+#   boot.ipxe       由 pxe/boot.ipxe.template 替换 ${PXE_SERVER_IP} 与 ${HTTP_PORT}。
 #                   （${buildarch} 等 iPXE 运行时变量保持原样）
 #   x86_64.ipxe     x86_64 架构启动脚本（控制台用 X86_KERNEL_CONSOLE）
 #   aarch64.ipxe    aarch64 架构启动脚本（控制台用 ARM64_KERNEL_CONSOLE）
@@ -21,7 +21,7 @@ source "${SCRIPT_DIR}/_common.sh"
 load_env
 
 BOOT_DIR="${DATA_DIR}/http/boot"
-TEMPLATE="${ROOT_DIR}/web/boot.ipxe.template"
+TEMPLATE="${ROOT_DIR}/pxe/boot.ipxe.template"
 mkdir -p "${BOOT_DIR}"
 
 # ---- 必要变量校验 ----

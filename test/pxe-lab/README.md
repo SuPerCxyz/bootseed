@@ -34,8 +34,8 @@ make prepare-ipxe                 # 三架构 iPXE（已用 v2.0.0）
 make build-initramfs-x86_64       # 容器内构建 x86_64 initramfs（vmlinuz/modloop 同核版本）
 bash scripts/generate-config.sh   # 生成 data/http/boot/*.ipxe
 
-# 3) 起 web 容器
-docker compose up -d --build bootseed-web
+# 3) 起 server 容器(门户+静态)
+docker compose up -d --build bootseed-server
 
 # 4) 关闭 libvirt 默认 DHCP，起单实例 lab dnsmasq（DHCP+TFTP+iPXE 路由）
 sudo virsh net-update default delete ip-dhcp-range \
