@@ -70,6 +70,15 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/images/jobs/", s.handleImageJob)     // GET 任务进度
 	mux.HandleFunc("/api/images/upload", s.handleImageUpload) // POST 上传(需鉴权)
 
+	// 静态下载目录（原 Nginx 职责）：/boot /alpine /images → /data/http/...
+	// 不做 StripPrefix：请求 /boot/boot.ipxe 直接解析为 httpRoot + /boot/boot.ipxe。
+	// http.FileServer 原生支持 Range，且 WriteTimeout=0 可避免慢客户端大镜像被截断。
+	httpRoot := filepath.Join(s.cfg.DataRoot, "http")
+	fs := http.FileServer(http.Dir(httpRoot))
+	mux.Handle("/boot/", fs)
+	mux.Handle("/alpine/", fs)
+	mux.Handle("/images/", fs)
+
 	if s.webFS != nil {
 		mux.Handle("/", http.FileServer(http.FS(s.webFS)))
 	}

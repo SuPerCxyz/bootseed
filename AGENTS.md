@@ -299,7 +299,7 @@ docker compose config -q
 - **P-C** ✅ 镜像增删:`POST /api/images`(url/path)+ `/api/images/upload`(浏览器直传)→
   qemu-img 转 raw + zstd + 登记(异步任务+进度);`DELETE /api/images/{id}`;
   `PORTAL_TOKEN` 鉴权(无口令写操作 401,实测)。
-- **P-D** ✅ docker-compose 新增 bootseed-server;web/nginx.conf 反代;三容器 healthy。
+- **P-D** ✅ docker-compose 两容器(bootseed-server 合并原 Nginx 静态职责,Go http.FileServer 原生 Range + WriteTimeout=0);两容器 healthy。
 - 新增 .env：`PORTAL_TOKEN`/`NODE_ONLINE_TIMEOUT`/`HEARTBEAT_INTERVAL`。
 - 关键文件：`server/**`、`agent/internal/report/report.go`、`agent/cmd/bootseed-agent/main.go`
   与 `internal/api/{server,deploy}.go`(上报接线)、`web/nginx.conf`(反代)、`docker-compose.yml`。

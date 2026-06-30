@@ -1,13 +1,12 @@
 # BootSeed 部署指南
 
-本文档描述如何从零部署 BootSeed——一个容器化的 PXE 镜像部署工具。BootSeed 由三个
+本文档描述如何从零部署 BootSeed——一个容器化的 PXE 镜像部署工具。BootSeed 由两个
 `docker-compose` 服务组成：
 
 | 服务 | 角色 | 网络 / 端口 |
 | --- | --- | --- |
 | `bootseed-pxe` | dnsmasq ProxyDHCP + TFTP，仅负责 PXE 引导路由，不分配 IP | `network_mode: host`，`cap_add: NET_RAW/NET_ADMIN`，UDP 67/69/4011 |
-| `bootseed-web` | Nginx：静态下载 `/boot` `/alpine` `/images`，反代 `/` 与 `/api/*` 到 `bootseed-server` | 对外 `${HTTP_PORT}`（默认 8088） |
-| `bootseed-server` | Go 门户后端：总览 / 镜像增删 / 节点登记，bbolt 持久化 | 容器内部 `:9090`，不直接对外 |
+| `bootseed-server` | Go 服务：门户后端（总览/镜像增删/节点登记，bbolt 持久化）+ 静态文件下载（`/boot` `/alpine` `/images`，原生 Range）+ 内嵌门户 UI | 对外 `${HTTP_PORT}`（默认 8088） |
 
 引导链：目标机 PXE 广播 → 现网 DHCP 发 IP → BootSeed ProxyDHCP 发引导 → TFTP 取 iPXE
 → HTTP 取 Alpine `vmlinuz` / `initramfs-deploy` / `modloop` → 内存系统启动
@@ -86,7 +85,7 @@ cd bootseed
 
 ```
 Makefile                 # 构建/启停入口
-docker-compose.yml       # 三服务编排
+docker-compose.yml       # 两服务编排
 .env.example             # 配置模板
 scripts/                 # 构建/校验/镜像管理脚本
 alpine/                  # initramfs 构建脚本与模块清单
@@ -236,13 +235,12 @@ docker compose ps
 docker compose logs -f --tail=200     # 或 make logs
 ```
 
-三个容器的健康检查：
+两个容器的健康检查：
 
 | 容器 | 健康检查 |
 | --- | --- |
 | `bootseed-pxe` | `pgrep dnsmasq` |
-| `bootseed-web` | `wget --spider http://127.0.0.1/healthz` |
-| `bootseed-server` | `wget --spider http://127.0.0.1:9090/healthz` |
+| `bootseed-server` | `wget --spider http://127.0.0.1/healthz` |
 
 `bootseed-pxe` 启动时会渲染 `/etc/bootseed/dnsmasq.conf.template` 并前台运行 dnsmasq，
 日志会打印渲染后的完整配置，可用于核对 `PXE_INTERFACE` / `PXE_SUBNET` /
@@ -255,17 +253,17 @@ docker compose logs -f --tail=200     # 或 make logs
 在宿主机或任意同网段机器上执行：
 
 ```bash
-# Nginx 健康检查（直连 web 容器）
+# bootseed-server 健康检查
 curl http://<PXE_SERVER_IP>:<HTTP_PORT>/healthz
 # 期望：ok
 
-# 服务端信息（经 Nginx 反代到 bootseed-server）
+# 服务端信息（bootseed-server 直接提供）
 curl http://<PXE_SERVER_IP>:<HTTP_PORT>/api/server-info
 # 返回 PXE_SERVER_IP / HTTP_PORT / PXE_INTERFACE / PXE_SUBNET /
 #       受支持架构 / Alpine 版本 / Agent 版本 / iPXE ref /
 #       三个 iPXE 文件是否就绪 / 两架构 Alpine 构建信息（含 kernel_version）
 
-# 门户首页（经 Nginx 反代到 bootseed-server）
+# 门户首页（bootseed-server 直接提供）
 curl -I http://<PXE_SERVER_IP>:<HTTP_PORT>/
 ```
 
@@ -293,7 +291,7 @@ PORTAL_TOKEN=<强口令>
 ### 7.1 门户页操作
 
 在门户「镜像管理」中上传镜像文件并填写元数据（id / 名称 / OS / 版本 / 架构 / 固件），
-提交即写入 `index.json`。上传走 Nginx 反代 `/api/` 到 `bootseed-server`，已关闭请求缓冲
+提交即写入 `index.json`。上传直连 bootseed-server `/api/images/upload`
 并放宽超时（`proxy_read_timeout 3600s`），支持大镜像。
 
 ### 7.2 脚本添加
@@ -384,7 +382,7 @@ ProxyDHCP 不能跨三层广播。多 VLAN 场景二选一：
 | UDP 67 | ProxyDHCP（DHCP 服务端口） | `bootseed-pxe` |
 | UDP 69 | TFTP | `bootseed-pxe` |
 | UDP 4011 | ProxyDHCP（PXE boot server 端口） | `bootseed-pxe` |
-| TCP `${HTTP_PORT}` | HTTP 下载 + 门户 + 管理 API | `bootseed-web` |
+| TCP `${HTTP_PORT}` | HTTP 下载 + 门户 + 管理 API | `bootseed-server` |
 
 确保宿主机防火墙放行上述端口，且 UDP 67 / 69 / 4011 未被其它 DHCP/TFTP 服务占用。
 
@@ -467,7 +465,7 @@ make clean
 cp .env.example .env && vi .env      # 配置
 make init                            # 一键构建产物
 make validate                        # 校验配置与产物
-make up                              # 启动三服务
+make up                              # 启动服务
 docker compose ps                    # 查看状态
 docker compose logs -f bootseed-pxe  # 看 PXE 引导日志
 curl http://<IP>:<HTTP_PORT>/healthz # 健康检查

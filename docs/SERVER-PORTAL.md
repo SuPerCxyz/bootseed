@@ -1,7 +1,12 @@
 # BootSeed 服务端门户（bootseed-server）产品设计文档
 
-> 状态：设计已定稿（2026-06-30），待实现。
-> 本文件是「服务端 Web 门户」的权威设计；实现进度在 [`AGENTS.md`](../AGENTS.md) 跟踪。
+> 状态：✅ 已实现并真机验证（2026-06-30）。
+> **架构演进**：实现时已将原 Nginx(`bootseed-web`) 的静态文件职责合并进 `bootseed-server`
+> （Go `http.FileServer`，原生 Range，WriteTimeout=0 防慢写截断），现为**两容器**拓扑
+> （`bootseed-pxe` + `bootseed-server`），不再有独立的 Nginx 容器。下文第 2 节的架构图
+> 描述了原"反代"设计，实际实现为 bootseed-server 直接服务静态文件 + 门户 + API。
+> 实现进度在 [`AGENTS.md`](../AGENTS.md) §11 跟踪。
+
 
 ## 1. 背景与定位
 

@@ -51,10 +51,19 @@ func main() {
 	}
 
 	srv := api.New(cfg, st, sub)
-	addr := envDefault("PORTAL_LISTEN", ":9090")
+	addr := envDefault("PORTAL_LISTEN", ":80")
 	log.Printf("[info] bootseed-server 启动于 %s，数据根=%s，DB=%s，鉴权=%v",
 		addr, dataRoot, dbPath, cfg.Token != "")
-	if err := http.ListenAndServe(addr, srv.Handler()); err != nil {
+	// WriteTimeout=0：不限制慢客户端的大镜像下载写回时长（避免慢写被截断）；
+	// ReadHeaderTimeout 适度限制防止慢速头部攻击；IdleTimeout 适度回收空闲连接。
+	httpServer := &http.Server{
+		Addr:              addr,
+		Handler:           srv.Handler(),
+		ReadHeaderTimeout: 30 * time.Second,
+		IdleTimeout:       120 * time.Second,
+		WriteTimeout:      0, // 不限时，大镜像慢写不被截断
+	}
+	if err := httpServer.ListenAndServe(); err != nil {
 		log.Fatalf("[fatal] HTTP 退出: %v", err)
 	}
 }
