@@ -1,0 +1,31 @@
+#!/sbin/openrc-run
+# BootSeed Agent 的 OpenRC 服务定义。
+#
+# 仅在使用「完整 Alpine + OpenRC」的运行方式时才会用到本文件；
+# BootSeed 默认使用自定义 /init（见 build-initramfs.sh），此文件作为备用方案保留。
+# 服务直接前台运行 bootseed-agent，并把标准输出 / 错误重定向到控制台。
+
+name="bootseed-agent"
+description="BootSeed 内存部署 Agent"
+
+command="/usr/local/bin/bootseed-agent"
+command_background="yes"
+pidfile="/run/${RC_SVCNAME}.pid"
+
+# 日志直接打到控制台，方便在无显示器的机房通过串口观察。
+output_log="/dev/console"
+error_log="/dev/console"
+
+depend() {
+	# 必须等待网络就绪后再启动，Agent 需要 DHCP 拿到地址才能对外提供页面。
+	need net
+	after firewall
+}
+
+start_pre() {
+	# 二进制缺失属于致命错误，直接拒绝启动并给出明确提示。
+	if [ ! -x "${command}" ]; then
+		eerror "找不到可执行文件 ${command}"
+		return 1
+	fi
+}

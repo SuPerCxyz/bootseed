@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BootSeed · 网络镜像部署</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>BootSeed</h1>
+    <p class="subtitle">网络镜像部署</p>
+  </header>
+
+  <main>
+    <section class="card" id="context-card">
+      <h2>节点信息</h2>
+      <div id="context-grid" class="grid">加载中…</div>
+    </section>
+
+    <section class="card" id="hardware-card">
+      <h2>硬件兼容信息</h2>
+      <h3>网卡</h3>
+      <table id="nic-table"><thead><tr>
+        <th>名称</th><th>MAC</th><th>状态</th><th>驱动</th><th>固件</th><th>PCI/平台</th>
+      </tr></thead><tbody></tbody></table>
+      <h3>存储控制器</h3>
+      <table id="ctrl-table"><thead><tr>
+        <th>PCI</th><th>类别</th><th>厂商</th><th>设备</th><th>驱动</th>
+      </tr></thead><tbody></tbody></table>
+      <h3>未绑定驱动的设备 / 警告</h3>
+      <div id="unbound" class="mono"></div>
+    </section>
+
+    <section class="card" id="images-card">
+      <h2>镜像列表</h2>
+      <label class="inline"><input type="checkbox" id="show-incompat"> 显示不兼容镜像</label>
+      <button id="reload-images" class="btn-secondary">重新加载清单</button>
+      <table id="image-table"><thead><tr>
+        <th>选择</th><th>名称</th><th>OS</th><th>版本</th><th>架构</th>
+        <th>固件</th><th>格式</th><th>压缩大小</th><th>解压大小</th><th>兼容</th>
+      </tr></thead><tbody></tbody></table>
+    </section>
+
+    <section class="card" id="disks-card">
+      <h2>目标磁盘</h2>
+      <button id="reload-disks" class="btn-secondary">重新扫描磁盘</button>
+      <table id="disk-table"><thead><tr>
+        <th>选择</th><th>设备</th><th>稳定路径</th><th>型号</th><th>序列号</th>
+        <th>容量</th><th>总线</th><th>类型</th><th>RAID</th><th>multipath</th><th>SAN</th><th>可用</th>
+      </tr></thead><tbody></tbody></table>
+    </section>
+
+    <section class="card" id="deploy-card">
+      <h2>部署确认</h2>
+      <div id="confirm-summary" class="mono">请选择镜像与目标磁盘。</div>
+      <label>输入 <strong>ERASE</strong> 以确认擦除目标磁盘：
+        <input type="text" id="confirm-input" placeholder="ERASE" autocomplete="off">
+      </label>
+      <label class="inline"><input type="checkbox" id="verify-raw"> 写盘后校验 RAW SHA-256</label>
+      <label class="inline"><input type="checkbox" id="auto-reboot"> 完成后自动重启</label>
+      <div class="actions">
+        <button id="deploy-btn" class="btn-danger" disabled>开始部署</button>
+        <button id="cancel-btn" class="btn-secondary" disabled>取消部署</button>
+        <button id="reboot-btn" class="btn-secondary">重启节点</button>
+        <button id="poweroff-btn" class="btn-secondary">关机</button>
+      </div>
+    </section>
+
+    <section class="card" id="progress-card">
+      <h2>部署进度</h2>
+      <div class="progress-bar"><div id="progress-fill"></div></div>
+      <div id="progress-text" class="mono">空闲</div>
+      <button id="post-reboot" class="btn-danger" style="display:none;margin-top:0.6rem;">部署完成，立即重启</button>
+    </section>
+
+    <div id="toast"></div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

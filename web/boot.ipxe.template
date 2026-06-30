@@ -1,0 +1,21 @@
+#!ipxe
+# BootSeed iPXE 入口：根据 iPXE buildarch 选择架构启动脚本
+#
+# 说明：
+#   - ${PXE_SERVER_IP} 与 ${HTTP_PORT} 是占位符，由 scripts/generate-config.sh
+#     在初始化阶段做文本替换，渲染为最终的 boot.ipxe，写入 data/http/boot/。
+#     它们不是 iPXE 运行时变量。
+#   - ${buildarch} 才是 iPXE 运行时变量，取值为 i386 / x86_64 / arm64。
+#   - 架构白名单仅限 x86_64 与 aarch64；arm64 映射到 aarch64.ipxe，
+#     其余（含 x86_64）统一走 x86_64.ipxe。
+#   - 每架构脚本 x86_64.ipxe / aarch64.ipxe 由 generate-config.sh 生成。
+
+dhcp || goto retry
+iseq ${buildarch} arm64 && chain http://${PXE_SERVER_IP}:${HTTP_PORT}/boot/aarch64.ipxe ||
+chain http://${PXE_SERVER_IP}:${HTTP_PORT}/boot/x86_64.ipxe
+
+:retry
+# DHCP 获取地址失败时的兜底：等待后重新执行本脚本。
+echo DHCP 失败，5 秒后重试……
+sleep 5
+chain http://${PXE_SERVER_IP}:${HTTP_PORT}/boot.ipxe

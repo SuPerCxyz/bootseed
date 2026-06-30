@@ -1,0 +1,11 @@
+# aarch64 固件包报告
+# 已安装固件包 (9):
+linux-firmware-bnx2
+linux-firmware-bnx2x
+linux-firmware-qed
+linux-firmware-qlogic
+linux-firmware-cxgb3
+linux-firmware-cxgb4
+linux-firmware-intel
+linux-firmware-mellanox
+linux-firmware-netronome

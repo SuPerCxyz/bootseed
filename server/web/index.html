@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BootSeed 服务端门户</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div>
+      <h1>BootSeed 服务端门户</h1>
+      <div class="sub">镜像 / 内存系统 / 节点 总览与管理</div>
+    </div>
+    <div class="right">
+      <div id="health">健康检查中…</div>
+      <div id="clock">-</div>
+      <button id="token-btn" class="btn-secondary">设置管理口令</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="card" id="overview-card">
+      <h2>服务端概览</h2>
+      <div id="overview" class="grid">加载中…</div>
+    </section>
+
+    <section class="card" id="images-card">
+      <h2>镜像仓库 <button id="add-image-btn" class="btn-primary">添加镜像</button></h2>
+      <table id="image-table"><thead><tr>
+        <th>ID</th><th>名称</th><th>OS</th><th>版本</th><th>架构</th><th>固件</th>
+        <th>格式</th><th class="num">压缩大小</th><th class="num">解压大小</th><th style="text-align:right">操作</th>
+      </tr></thead><tbody></tbody></table>
+    </section>
+
+    <section class="card" id="alpine-card">
+      <h2>内存系统构建</h2>
+      <div id="alpine-builds" class="build-list">加载中…</div>
+    </section>
+
+    <section class="card" id="ipxe-card">
+      <h2>iPXE 引导文件</h2>
+      <div id="ipxe-files" class="kv-list">加载中…</div>
+    </section>
+
+    <section class="card" id="nodes-card">
+      <h2>节点列表 <span id="nodes-summary" class="hint"></span></h2>
+      <div style="margin-bottom:0.4rem;">
+        <label class="hint" style="display:inline">筛选：
+          <select id="node-filter">
+            <option value="all">全部</option>
+            <option value="online">在线</option>
+            <option value="deployed">已部署</option>
+            <option value="undeployed">未部署</option>
+            <option value="failed">最后失败</option>
+          </select>
+        </label>
+        <button id="reload-nodes" class="btn-secondary">刷新</button>
+      </div>
+      <table id="node-table"><thead><tr>
+        <th>状态</th><th>IP</th><th>架构</th><th>固件</th><th>UUID</th><th>MAC</th>
+        <th>部署过</th><th>最后结果</th><th>最近活动</th>
+      </tr></thead><tbody></tbody></table>
+    </section>
+
+    <section class="card" id="guide-card">
+      <h2>使用指引</h2>
+      <div class="mono" id="guide"></div>
+    </section>
+
+    <div id="toast"></div>
+  </main>
+
+  <!-- 添加镜像弹窗 -->
+  <div class="modal" id="add-modal">
+    <div class="box">
+      <div class="modal-head">
+        <h3>添加镜像</h3>
+        <button class="modal-x" id="add-x" aria-label="关闭">×</button>
+      </div>
+      <div class="form">
+        <div class="form-section">
+          <div class="form-section-title">来源</div>
+          <div class="field">
+            <label for="add-mode">来源方式</label>
+            <select id="add-mode">
+              <option value="url">URL 拉取（推荐，大镜像）</option>
+              <option value="path">服务器本地路径</option>
+              <option value="upload">浏览器上传（GB 级不推荐）</option>
+            </select>
+          </div>
+          <div class="field" id="src-url-l">
+            <label for="add-source">镜像 URL</label>
+            <input id="add-source" placeholder="https://.../xxx.qcow2">
+          </div>
+          <div class="field" id="src-file-l" style="display:none">
+            <label for="add-file">选择文件</label>
+            <input id="add-file" type="file">
+          </div>
+        </div>
+        <div class="form-section">
+          <div class="form-section-title">元数据</div>
+          <div class="field-row">
+            <div class="field">
+              <label for="add-id">ID <span class="req">*</span></label>
+              <input id="add-id" placeholder="rocky9-x86_64">
+            </div>
+            <div class="field">
+              <label for="add-name">名称</label>
+              <input id="add-name" placeholder="Rocky Linux 9">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="add-os">OS</label>
+              <input id="add-os" placeholder="rocky">
+            </div>
+            <div class="field">
+              <label for="add-version">版本</label>
+              <input id="add-version" placeholder="9">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="add-arch">架构</label>
+              <select id="add-arch"><option>x86_64</option><option>aarch64</option></select>
+            </div>
+            <div class="field">
+              <label for="add-fw">固件</label>
+              <select id="add-fw"><option value="bios">bios</option><option value="uefi">uefi</option><option value="bios,uefi">bios,uefi</option></select>
+            </div>
+          </div>
+        </div>
+        <div id="add-progress" class="mono hint"></div>
+      </div>
+      <div class="modal-foot">
+        <button id="add-cancel" class="btn-secondary">关闭</button>
+        <button id="add-submit" class="btn-primary">提交</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

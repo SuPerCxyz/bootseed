@@ -1,0 +1,48 @@
+# BootSeed 存储驱动模块清单
+# 每行一个模块名，# 开头为注释，空行忽略。
+# 覆盖 RAID 卡、HBA、SCSI/SATA、NVMe 与虚拟化存储控制器，
+# 确保进入内存系统后能够枚举到目标系统盘。
+
+# ---- RAID / HBA 控制器 ----
+megaraid_sas
+mpt2sas
+mpt3sas
+mpi3mr
+smartpqi
+hpsa
+aacraid
+pm80xx
+arcmsr
+3w_sas
+3w_9xxx
+
+# ---- SCSI 核心与通用块设备 ----
+scsi_mod
+sd_mod
+sg
+sr_mod
+ses
+enclosure
+libsas
+scsi_transport_sas
+scsi_transport_fc
+
+# ---- SATA / AHCI ----
+ahci
+libahci
+libata
+ata_piix
+
+# ---- 虚拟化存储控制器 ----
+virtio_pci
+virtio_blk
+virtio_scsi
+vmw_pvscsi
+hv_storvsc
+xen-blkfront
+
+# ---- NVMe ----
+nvme
+nvme_core
+nvme_fabrics
+nvme_tcp

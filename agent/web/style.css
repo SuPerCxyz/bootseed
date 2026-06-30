@@ -1,0 +1,66 @@
+:root {
+  --bg: #eef4fc;        /* 浅蓝背景 */
+  --card: #ffffff;      /* 白色卡片 */
+  --border: #c7d7ee;    /* 浅蓝边框 */
+  --text: #15233b;      /* 深蓝灰文字 */
+  --muted: #5a6b86;     /* 次要文字 */
+  --accent: #2563eb;    /* 亮蓝主色 */
+  --accent2: #3b82f6;   /* 亮蓝辅色 */
+  --danger: #dc2626;
+  --ok: #16a34a;
+  --warn: #d97706;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: system-ui, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+}
+header {
+  padding: 1.2rem 2rem;
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  box-shadow: 0 2px 8px rgba(37,99,235,0.25);
+}
+header h1 { margin: 0; font-size: 1.8rem; color: #ffffff; }
+.subtitle { margin: 0; color: #e0ecff; }
+main { padding: 1.5rem; max-width: 1200px; margin: 0 auto; }
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 1px 4px rgba(37,99,235,0.08);
+}
+.card h2 { margin-top: 0; color: var(--accent); font-size: 1.2rem; }
+.card h3 { color: var(--muted); font-size: 0.95rem; margin: 0.8rem 0 0.3rem; }
+/* 节点信息：固定 2 列，长字段也每行 2 个；窄屏回退单列 */
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem 1.5rem; }
+.grid div { font-size: 0.9rem; overflow-wrap: anywhere; word-break: break-all; }
+.grid span { color: var(--muted); display: inline-block; min-width: 5.5em; }
+@media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 0.4rem; }
+th, td { padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--border); text-align: left; }
+th { color: var(--muted); font-weight: 600; }
+tr.incompat { opacity: 0.5; }
+.mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.85rem; white-space: pre-wrap; color: var(--text); }
+.badge { padding: 0.1rem 0.45rem; border-radius: 4px; font-size: 0.75rem; }
+.badge.ok { background: rgba(22,163,74,0.15); color: var(--ok); }
+.badge.no { background: rgba(220,38,38,0.15); color: var(--danger); }
+.badge.warn { background: rgba(217,119,6,0.15); color: var(--warn); }
+label { display: block; margin: 0.5rem 0; }
+label.inline { display: inline-flex; align-items: center; gap: 0.4rem; margin-right: 1rem; }
+input[type=text] { background: #ffffff; border: 1px solid var(--border); color: var(--text); padding: 0.4rem; border-radius: 4px; }
+button { cursor: pointer; border: none; border-radius: 6px; padding: 0.5rem 1rem; font-size: 0.9rem; margin: 0.3rem 0.3rem 0.3rem 0; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-secondary { background: #dce8fb; color: #1e3a8a; border: 1px solid var(--border); }
+.actions { margin-top: 0.6rem; }
+.progress-bar { height: 20px; background: #dbe7fa; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+#progress-fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width 0.3s; }
+#progress-text { margin-top: 0.5rem; }
+#toast { position: fixed; bottom: 1rem; right: 1rem; }
+.toast-item { background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--accent); padding: 0.6rem 1rem; margin-top: 0.5rem; border-radius: 6px; max-width: 360px; box-shadow: 0 2px 8px rgba(37,99,235,0.15); }
+.toast-item.error { border-left-color: var(--danger); }

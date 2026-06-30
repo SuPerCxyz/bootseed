@@ -1,0 +1,71 @@
+# ============================================================
+# BootSeed dnsmasq ProxyDHCP + TFTP 配置模板
+# 由 entrypoint.sh 通过 envsubst 渲染为 /tmp/dnsmasq.conf
+# 占位符使用 ${VAR} 形式
+# ============================================================
+#
+# 重要约束：
+#   - 仅做 ProxyDHCP，绝不分配 IP / 网关 / DNS。
+#   - 真实地址由环境中已有的 DHCP 服务器负责。
+#   - 禁止配置普通 DHCP 地址池，禁止 dhcp-authoritative。
+
+# 关闭 DNS 功能，BootSeed 只承担 PXE/TFTP 职责
+port=0
+
+# 仅服务指定网卡，避免影响其它网络
+interface=${PXE_INTERFACE}
+except-interface=lo
+# 使用 bind-dynamic（而非 bind-interfaces）：
+# ProxyDHCP 必须与“现有 DHCP”共享同一网段的 UDP/67。bind-dynamic 采用
+# SO_REUSEADDR，可与另一个 DHCP 服务（如本机 libvirt dnsmasq 或同网段其它
+# DHCP）共存接收广播；bind-interfaces 会独占 67 端口，导致现有 DHCP 收不到
+# 请求、客户端拿不到 IP（PXE-E16）。dnsmasq 仍只对 interface= 指定网卡服务。
+bind-dynamic
+
+# ProxyDHCP 模式：只回应 PXE 选项，不下发地址池
+dhcp-range=${PXE_SUBNET},proxy
+
+# 启用内置 TFTP 服务
+enable-tftp
+tftp-root=/var/lib/tftp
+
+# 打开 DHCP 详细日志，便于排查架构识别与引导链路
+log-dhcp
+
+# ------------------------------------------------------------
+# 架构识别：DHCP Option 93 (client-arch)
+#   0  = x86 Legacy BIOS
+#   7  = EFI BC（部分厂商固件用于 x86_64 EFI）
+#   9  = EFI x86-64
+#   11 = EFI ARM64
+# 部分厂商固件在 x86_64 上报 7，因此 7 与 9 统一归入 efi_x64。
+# ------------------------------------------------------------
+dhcp-match=set:bios,option:client-arch,0
+dhcp-match=set:efi_x64,option:client-arch,7
+dhcp-match=set:efi_x64,option:client-arch,9
+dhcp-match=set:efi_arm64,option:client-arch,11
+
+# 识别客户端是否已经是 iPXE：iPXE 会带 user-class "iPXE"
+dhcp-userclass=set:ipxe,iPXE
+
+# ------------------------------------------------------------
+# 引导路由（ProxyDHCP 模式必须用 pxe-service，dhcp-boot 在代理模式下不生效！）
+#   - 已是 iPXE（含 QEMU virtio iPXE ROM）：直接给 HTTP 上的 boot.ipxe
+#   - 非 iPXE（裸 PXE 固件）：按架构 TFTP 下发对应 iPXE 二进制，由其再 chain HTTP
+# pxe-service 的架构类型名：x86PC=0, BC_EFI=7, X86-64_EFI=9, ARM64_EFI=11。
+# 部分固件 x86_64 上报 7，故 7 与 9 都给 x86_64。
+# ------------------------------------------------------------
+# 取消菜单等待，直接引导
+pxe-prompt="BootSeed",0
+
+# 已是 iPXE：boot 文件给完整 HTTP URL（iPXE 可直接 boot URL）
+pxe-service=tag:ipxe,x86PC,"BootSeed",http://${PXE_SERVER_IP}:${HTTP_PORT}/boot/boot.ipxe
+pxe-service=tag:ipxe,BC_EFI,"BootSeed",http://${PXE_SERVER_IP}:${HTTP_PORT}/boot/boot.ipxe
+pxe-service=tag:ipxe,X86-64_EFI,"BootSeed",http://${PXE_SERVER_IP}:${HTTP_PORT}/boot/boot.ipxe
+pxe-service=tag:ipxe,ARM64_EFI,"BootSeed",http://${PXE_SERVER_IP}:${HTTP_PORT}/boot/boot.ipxe
+
+# 非 iPXE：TFTP 下发裸 iPXE 二进制
+pxe-service=tag:bios,tag:!ipxe,x86PC,"BootSeed BIOS",x86/undionly.kpxe
+pxe-service=tag:efi_x64,tag:!ipxe,BC_EFI,"BootSeed UEFI",x86_64/snponly.efi
+pxe-service=tag:efi_x64,tag:!ipxe,X86-64_EFI,"BootSeed UEFI",x86_64/snponly.efi
+pxe-service=tag:efi_arm64,tag:!ipxe,ARM64_EFI,"BootSeed ARM64",aarch64/snponly.efi

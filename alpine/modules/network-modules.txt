@@ -1,0 +1,71 @@
+# BootSeed 网络驱动模块清单
+# 每行一个模块名，# 开头为注释，空行忽略。
+# 这些模块会通过 modprobe --show-depends 递归解析依赖后打包进 initramfs。
+# 覆盖主流物理网卡、虚拟化网卡与云厂商弹性网卡，确保 PXE 节点能拿到网络。
+
+# ---- Intel 有线网卡 ----
+e1000
+e1000e
+igb
+igc
+ixgbe
+ixgbevf
+i40e
+iavf
+ice
+
+# ---- Broadcom 有线网卡 ----
+tg3
+bnx2
+bnx2x
+bnxt_en
+
+# ---- Mellanox / NVIDIA 网卡 ----
+mlx4_core
+mlx4_en
+mlx5_core
+
+# ---- QLogic / Marvell 网卡 ----
+qede
+qed
+
+# ---- Marvell / Realtek 桌面级网卡 ----
+sky2
+r8169
+
+# ---- Aquantia 万兆网卡 ----
+atlantic
+
+# ---- 虚拟化 / 云平台网卡 ----
+virtio_net
+vmxnet3
+hv_netvsc
+xen-netfront
+ena
+gve
+netvsc
+nfp
+
+# ---- 华为 / 国产 SoC 网卡 ----
+hns
+hns3
+hinic
+enetc
+stmmac
+thunderx
+thunder_bgx
+octeontx2
+
+# ---- 网络基础支撑模块 ----
+mii
+mdio
+phylib
+ptp
+pps_core
+crc32
+8021q
+bonding
+bridge
+
+# DHCP/udhcpc 需要 AF_PACKET 原始套接字
+af_packet

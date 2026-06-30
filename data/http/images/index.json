@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "images": [
+    {
+      "id": "test-x86_64",
+      "name": "BootSeed Test x86_64",
+      "os": "test",
+      "version": "1",
+      "architecture": "x86_64",
+      "firmware": [
+        "uefi"
+      ],
+      "path": "/images/test-x86_64.raw.zst",
+      "format": "raw.zst",
+      "compressed_size": 2366,
+      "raw_size": 67108864,
+      "sha256_compressed": "b1e318bfc14f489e174072b0dbc98649948f7498a8c0b823e68f1c0ec5624329",
+      "description": ""
+    },
+    {
+      "id": "rocky98-x86_64",
+      "name": "Rocky Linux 9.8 x86_64 (BIOS)",
+      "os": "rocky",
+      "version": "9.8",
+      "architecture": "x86_64",
+      "firmware": [
+        "bios"
+      ],
+      "path": "/images/rocky98-x86_64.raw.zst",
+      "format": "raw.zst",
+      "compressed_size": 1513782934,
+      "raw_size": 5368709120,
+      "sha256_compressed": "fd78319100a3f56e2575504e8ac916fde61bae41c36fa020a056614f67296799",
+      "description": ""
+    }
+  ]
+}
