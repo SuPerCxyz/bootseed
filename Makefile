@@ -1,6 +1,6 @@
 # BootSeed Makefile
-# 所有命令都不依赖在源码中硬编码的服务端 IP / 网卡 / 端口，
-# 全部通过 .env 控制。
+# 所有命令都不依赖在源码中硬编码的服务端 IP / 网卡 / 端口,
+# 全部通过 .env 控制.
 
 SHELL := /bin/bash
 ROOT  := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
@@ -25,7 +25,7 @@ GO ?= go
 .PHONY: help
 help:
 	@echo "BootSeed make targets:"
-	@echo "  init                 一次性初始化：iPXE、Alpine、Agent、initramfs、清单、校验"
+	@echo "  init                 一次性初始化:iPXE,Alpine,Agent,initramfs,清单,校验"
 	@echo "  build                = build-agent + build-initramfs"
 	@echo "  build-agent[-ARCH]   构建 Go Agent"
 	@echo "  build-initramfs[-ARCH] 构建 Alpine initramfs"
@@ -71,9 +71,9 @@ build-agent-aarch64:
 .PHONY: build-initramfs
 build-initramfs: build-initramfs-x86_64 build-initramfs-aarch64
 
-# initramfs 构建依赖 Alpine 的 apk-tools/kmod 等工具，宿主机（如 Ubuntu）通常没有，
-# 因此统一在 bootseed-builder 容器内执行 alpine/build-initramfs.sh。
-# 容器内路径：项目根挂载到 /work，故 BUILD_DIR=/work/build、DATA_DIR=/work/data。
+# initramfs 构建依赖 Alpine 的 apk-tools/kmod 等工具,宿主机(如 Ubuntu)通常没有,
+# 因此统一在 bootseed-builder 容器内执行 alpine/build-initramfs.sh.
+# 容器内路径:项目根挂载到 /work,故 BUILD_DIR=/work/build,DATA_DIR=/work/data.
 DOCKER        ?= docker
 BUILDER_IMAGE ?= bootseed-builder:latest
 
@@ -82,8 +82,8 @@ builder-image:
 	@echo "[builder-image] 构建 $(BUILDER_IMAGE)"
 	$(DOCKER) build -t $(BUILDER_IMAGE) -f $(ROOT)/alpine/Dockerfile.builder $(ROOT)/alpine
 
-# $(call run_initramfs,<arch>)：在 builder 容器内组装指定架构 initramfs。
-# 需要 CAP_MKNOD（apk --root 创建 /dev 节点），docker run 默认已具备。
+# $(call run_initramfs,<arch>):在 builder 容器内组装指定架构 initramfs.
+# 需要 CAP_MKNOD(apk --root 创建 /dev 节点),docker run 默认已具备.
 define run_initramfs
 	$(DOCKER) run --rm \
 		-e BUILD_DIR=/work/build -e DATA_DIR=/work/data \

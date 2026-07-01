@@ -1,4 +1,4 @@
-// Package progress 跟踪部署任务的进度并对外提供瞬时 / 平均速度。
+// Package progress 跟踪部署任务的进度并对外提供瞬时 / 平均速度.
 package progress
 
 import (
@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// Snapshot 是部署任务进度的快照，可被 JSON 序列化给前端。
+// Snapshot 是部署任务进度的快照,可被 JSON 序列化给前端.
 type Snapshot struct {
 	Stage           string  `json:"stage"`
 	Message         string  `json:"message"`
@@ -21,7 +21,7 @@ type Snapshot struct {
 	Error           string  `json:"error,omitempty"`
 }
 
-// Tracker 维护一个部署任务的实时进度。
+// Tracker 维护一个部署任务的实时进度.
 type Tracker struct {
 	mu         sync.Mutex
 	stage      string
@@ -37,10 +37,10 @@ type Tracker struct {
 	listeners  []chan Snapshot
 }
 
-// NewTracker 构造空 Tracker。
+// NewTracker 构造空 Tracker.
 func NewTracker() *Tracker { return &Tracker{} }
 
-// Start 重置 Tracker 状态。
+// Start 重置 Tracker 状态.
 func (t *Tracker) Start(total int64) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
@@ -56,7 +56,7 @@ func (t *Tracker) Start(total int64) {
 	t.errMessage = ""
 }
 
-// SetStage 修改阶段名。
+// SetStage 修改阶段名.
 func (t *Tracker) SetStage(stage, message string) {
 	t.mu.Lock()
 	t.stage = stage
@@ -65,21 +65,21 @@ func (t *Tracker) SetStage(stage, message string) {
 	t.broadcastLocked()
 }
 
-// SetTotal 在已知镜像 raw_size 后更新总字节数。
+// SetTotal 在已知镜像 raw_size 后更新总字节数.
 func (t *Tracker) SetTotal(total int64) {
 	t.mu.Lock()
 	t.total = total
 	t.mu.Unlock()
 }
 
-// AddDownloaded 累加压缩流读取字节。
+// AddDownloaded 累加压缩流读取字节.
 func (t *Tracker) AddDownloaded(n int64) {
 	t.mu.Lock()
 	t.downloaded += n
 	t.mu.Unlock()
 }
 
-// AddWritten 累加已写盘字节（用于计算进度）。
+// AddWritten 累加已写盘字节(用于计算进度).
 func (t *Tracker) AddWritten(n int64) {
 	t.mu.Lock()
 	t.written += n
@@ -98,7 +98,7 @@ func (t *Tracker) AddWritten(n int64) {
 	t.mu.Unlock()
 }
 
-// Fail 记录错误。
+// Fail 记录错误.
 func (t *Tracker) Fail(err error) {
 	t.mu.Lock()
 	t.errMessage = err.Error()
@@ -107,7 +107,7 @@ func (t *Tracker) Fail(err error) {
 	t.broadcastLocked()
 }
 
-// Snapshot 返回当前状态。
+// Snapshot 返回当前状态.
 func (t *Tracker) Snapshot() Snapshot {
 	t.mu.Lock()
 	defer t.mu.Unlock()
@@ -147,7 +147,7 @@ func (t *Tracker) snapshotLocked() Snapshot {
 	}
 }
 
-// Subscribe 创建 SSE 用监听 channel。
+// Subscribe 创建 SSE 用监听 channel.
 func (t *Tracker) Subscribe() <-chan Snapshot {
 	ch := make(chan Snapshot, 16)
 	t.mu.Lock()
@@ -156,7 +156,7 @@ func (t *Tracker) Subscribe() <-chan Snapshot {
 	return ch
 }
 
-// Unsubscribe 关闭并移除监听。
+// Unsubscribe 关闭并移除监听.
 func (t *Tracker) Unsubscribe(ch <-chan Snapshot) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
@@ -182,5 +182,5 @@ func (t *Tracker) broadcastLocked() {
 	}
 }
 
-// Broadcast 让外部周期性触发广播。
+// Broadcast 让外部周期性触发广播.
 func (t *Tracker) Broadcast() { t.broadcastLocked() }

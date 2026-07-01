@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
 # BootSeed 脚本公共库
 #
-# 功能：
+# 功能:
 #   - 定位项目根目录
-#   - 加载 .env（缺失时回退到 .env.example 并告警）
-#   - 架构规范化（x86_64 / aarch64，接受 amd64 / x64 / arm64 别名）
-#   - 统一日志输出（info / warn / error / pass / fail）
+#   - 加载 .env(缺失时回退到 .env.example 并告警)
+#   - 架构规范化(x86_64 / aarch64,接受 amd64 / x64 / arm64 别名)
+#   - 统一日志输出(info / warn / error / pass / fail)
 #
-# 用法：在其他脚本顶部 `source "$(dirname "$0")/_common.sh"`。
-# 本文件本身不应被直接执行。
+# 用法:在其他脚本顶部 `source "$(dirname "$0")/_common.sh"`.
+# 本文件本身不应被直接执行.
 
 set -euo pipefail
 
 # ------------------------------------------------------------------
 # 路径定位
 # ------------------------------------------------------------------
-# 公共库所在目录即 scripts/，其父目录为项目根。
+# 公共库所在目录即 scripts/,其父目录为项目根.
 COMMON_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${COMMON_DIR}/.." && pwd)"
 DATA_DIR="${ROOT_DIR}/data"
@@ -23,7 +23,7 @@ BUILD_DIR="${ROOT_DIR}/build"
 export ROOT_DIR DATA_DIR BUILD_DIR
 
 # ------------------------------------------------------------------
-# 颜色（仅在终端时启用）
+# 颜色(仅在终端时启用)
 # ------------------------------------------------------------------
 if [[ -t 1 ]]; then
   C_RED=$'\033[31m'; C_GRN=$'\033[32m'; C_YEL=$'\033[33m'
@@ -38,7 +38,7 @@ log_error() { printf '%s[错误]%s %s\n' "${C_RED}" "${C_RST}" "$*" >&2; }
 log_pass() { printf '%s[通过]%s %s\n' "${C_GRN}" "${C_RST}" "$*"; }
 log_fail() { printf '%s[失败]%s %s\n' "${C_RED}" "${C_RST}" "$*"; }
 
-# 致命错误：打印后退出。
+# 致命错误:打印后退出.
 die() {
   log_error "$*"
   exit 1
@@ -47,8 +47,8 @@ die() {
 # ------------------------------------------------------------------
 # 环境变量加载
 # ------------------------------------------------------------------
-# 优先加载项目根的 .env；若不存在则回退到 .env.example 并告警。
-# 仅在尚未加载过时执行一次。
+# 优先加载项目根的 .env;若不存在则回退到 .env.example 并告警.
+# 仅在尚未加载过时执行一次.
 load_env() {
   if [[ "${_BOOTSEED_ENV_LOADED:-}" == "1" ]]; then
     return 0
@@ -58,13 +58,13 @@ load_env() {
     env_file="${ROOT_DIR}/.env"
   elif [[ -f "${ROOT_DIR}/.env.example" ]]; then
     env_file="${ROOT_DIR}/.env.example"
-    log_warn "未找到 .env，回退使用 .env.example（请尽快复制为 .env）"
+    log_warn "未找到 .env,回退使用 .env.example(请尽快复制为 .env)"
   else
-    die "未找到 .env 或 .env.example，无法加载配置"
+    die "未找到 .env 或 .env.example,无法加载配置"
   fi
 
-  # 逐行解析，避免直接 source 带来的命令执行风险。
-  # 仅接受 KEY=VALUE 形式；忽略空行与注释。
+  # 逐行解析,避免直接 source 带来的命令执行风险.
+  # 仅接受 KEY=VALUE 形式;忽略空行与注释.
   local line key val
   while IFS= read -r line || [[ -n "${line}" ]]; do
     line="${line%$'\r'}"
@@ -93,24 +93,24 @@ load_env() {
 # ------------------------------------------------------------------
 # 架构规范化
 # ------------------------------------------------------------------
-# 输入任意别名，输出规范架构 x86_64 / aarch64；非法输入返回非零并报错。
+# 输入任意别名,输出规范架构 x86_64 / aarch64;非法输入返回非零并报错.
 normalize_arch() {
   local in="${1:-}"
   case "${in}" in
     x86_64|amd64|x64) echo "x86_64" ;;
     aarch64|arm64) echo "aarch64" ;;
     *)
-      log_error "不支持的架构：'${in}'（仅支持 x86_64/aarch64，别名 amd64/x64/arm64）"
+      log_error "不支持的架构:'${in}'(仅支持 x86_64/aarch64,别名 amd64/x64/arm64)"
       return 1
       ;;
   esac
 }
 
-# 将规范架构映射为 Alpine apk 架构名（当前一一对应）。
+# 将规范架构映射为 Alpine apk 架构名(当前一一对应).
 alpine_apk_arch() {
   case "${1}" in
     x86_64) echo "x86_64" ;;
     aarch64) echo "aarch64" ;;
-    *) log_error "无法映射 Alpine 架构：'${1}'"; return 1 ;;
+    *) log_error "无法映射 Alpine 架构:'${1}'"; return 1 ;;
   esac
 }

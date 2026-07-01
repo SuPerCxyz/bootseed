@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# 组合冒烟测试：非破坏性本地检查。
+# 组合冒烟测试:非破坏性本地检查.
 #
-# 用法：scripts/smoke-test.sh
+# 用法:scripts/smoke-test.sh
 #
-# 步骤：
+# 步骤:
 #   1) cd agent && go vet ./... && go test ./...
 #   2) docker compose config -q
-#   3) scripts/validate-config.sh（非 strict）
-#   4) shellcheck scripts/*.sh（若可用），否则 bash -n
-# 任一关键步骤失败计入失败计数；末尾打印汇总并据此退出。
+#   3) scripts/validate-config.sh(非 strict)
+#   4) shellcheck scripts/*.sh(若可用),否则 bash -n
+# 任一关键步骤失败计入失败计数;末尾打印汇总并据此退出.
 
 set -euo pipefail
 
@@ -30,7 +30,7 @@ if command -v go >/dev/null 2>&1; then
     FAIL=$((FAIL + 1))
   fi
 else
-  log_warn "未找到 go，跳过 Go 检查"
+  log_warn "未找到 go,跳过 Go 检查"
   SKIP=$((SKIP + 1))
 fi
 
@@ -50,14 +50,14 @@ if [[ -n "${COMPOSE}" ]]; then
     FAIL=$((FAIL + 1))
   fi
 else
-  log_warn "未找到 docker compose，跳过"
+  log_warn "未找到 docker compose,跳过"
   SKIP=$((SKIP + 1))
 fi
 
-# ---- 3. validate-config（非 strict）----
-section "3) validate-config.sh（非 strict）"
+# ---- 3. validate-config(非 strict)----
+section "3) validate-config.sh(非 strict)"
 if bash "${SCRIPT_DIR}/validate-config.sh"; then
-  log_pass "配置校验通过（允许 WARN）"
+  log_pass "配置校验通过(允许 WARN)"
 else
   log_fail "配置校验存在 FAIL"
   FAIL=$((FAIL + 1))
@@ -74,11 +74,11 @@ if command -v shellcheck >/dev/null 2>&1; then
     FAIL=$((FAIL + 1))
   fi
 else
-  log_warn "未找到 shellcheck，回退 bash -n"
+  log_warn "未找到 shellcheck,回退 bash -n"
   local_fail=0
   for s in "${SCRIPTS[@]}"; do
     if ! bash -n "${s}"; then
-      log_fail "bash -n 失败：${s}"
+      log_fail "bash -n 失败:${s}"
       local_fail=1
     fi
   done
@@ -96,5 +96,5 @@ if [[ "${FAIL}" -gt 0 ]]; then
   log_fail "冒烟测试存在失败项"
   exit 1
 fi
-log_pass "冒烟测试通过（跳过项 ${SKIP} 个）"
+log_pass "冒烟测试通过(跳过项 ${SKIP} 个)"
 exit 0

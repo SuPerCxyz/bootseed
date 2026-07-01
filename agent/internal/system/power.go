@@ -6,8 +6,8 @@ import (
 	"time"
 )
 
-// Reboot 触发节点重启。优先调用结构化的外部命令，避免 shell 拼接。
-// 在内存系统中通常存在 busybox reboot；找不到时退回到 systemctl/poweroff 工具链。
+// Reboot 触发节点重启.优先调用结构化的外部命令,避免 shell 拼接.
+// 在内存系统中通常存在 busybox reboot;找不到时退回到 systemctl/poweroff 工具链.
 func Reboot(ctx context.Context) error {
 	return runFirst(ctx, [][]string{
 		{"reboot"},
@@ -16,7 +16,7 @@ func Reboot(ctx context.Context) error {
 	})
 }
 
-// Poweroff 触发节点关机。
+// Poweroff 触发节点关机.
 func Poweroff(ctx context.Context) error {
 	return runFirst(ctx, [][]string{
 		{"poweroff"},
@@ -25,8 +25,8 @@ func Poweroff(ctx context.Context) error {
 	})
 }
 
-// runFirst 依次尝试候选命令，第一个能找到并成功执行的即返回。
-// 所有命令都使用结构化参数，绝不使用 sh -c 拼接用户输入。
+// runFirst 依次尝试候选命令,第一个能找到并成功执行的即返回.
+// 所有命令都使用结构化参数,绝不使用 sh -c 拼接用户输入.
 func runFirst(ctx context.Context, candidates [][]string) error {
 	var lastErr error
 	for _, c := range candidates {

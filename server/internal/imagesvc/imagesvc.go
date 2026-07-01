@@ -1,5 +1,5 @@
-// Package imagesvc 管理镜像清单 index.json：列出、删除、添加（URL/本地路径/上传 →
-// 自动转 raw → zstd 压缩 → 登记），添加为带进度的异步任务。
+// Package imagesvc 管理镜像清单 index.json:列出,删除,添加(URL/本地路径/上传 ->
+// 自动转 raw -> zstd 压缩 -> 登记),添加为带进度的异步任务.
 package imagesvc
 
 import (
@@ -23,7 +23,7 @@ import (
 
 var idRe = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
 
-// Service 管理镜像目录与 index.json。
+// Service 管理镜像目录与 index.json.
 type Service struct {
 	IndexPath string // .../images/index.json
 	ImagesDir string // .../images
@@ -33,7 +33,7 @@ type Service struct {
 	jobs   map[string]*Job
 }
 
-// Job 描述一次添加镜像的异步任务。
+// Job 描述一次添加镜像的异步任务.
 type Job struct {
 	ID      string  `json:"id"`
 	Stage   string  `json:"stage"`   // downloading/converting/compressing/registering/done/failed
@@ -43,24 +43,35 @@ type Job struct {
 	Done    bool    `json:"done"`
 }
 
-// AddSpec 是添加镜像的参数。
+// AddSpec 是添加镜像的参数.
 type AddSpec struct {
 	Mode         string // url|path|upload
-	Source       string // URL 或服务器本地路径（upload 模式由 handler 落临时文件后填入）
+	Source       string // URL 或服务器本地路径(upload 模式由 handler 落临时文件后填入)
 	ID           string
 	Name         string
 	OS           string
 	Version      string
 	Architecture string
 	Firmware     []string
+	Description  string
 }
 
-// New 构造 Service。
+// UpdateSpec 仅允许更新镜像元数据,不变更镜像文件.
+type UpdateSpec struct {
+	Name         string
+	OS           string
+	Version      string
+	Architecture string
+	Firmware     []string
+	Description  string
+}
+
+// New 构造 Service.
 func New(indexPath, imagesDir string) *Service {
 	return &Service{IndexPath: indexPath, ImagesDir: imagesDir, jobs: map[string]*Job{}}
 }
 
-// List 读取 index.json。
+// List 读取 index.json.
 func (s *Service) List() (model.Index, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -85,7 +96,7 @@ func (s *Service) readIndex() (model.Index, error) {
 	return idx, nil
 }
 
-// writeIndex 原子写 index.json（调用方持锁）。
+// writeIndex 原子写 index.json(调用方持锁).
 func (s *Service) writeIndex(idx model.Index) error {
 	tmp := s.IndexPath + ".tmp"
 	b, err := json.MarshalIndent(idx, "", "  ")
@@ -98,7 +109,7 @@ func (s *Service) writeIndex(idx model.Index) error {
 	return os.Rename(tmp, s.IndexPath)
 }
 
-// Delete 删除条目与文件。
+// Delete 删除条目与文件.
 func (s *Service) Delete(id string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -122,13 +133,51 @@ func (s *Service) Delete(id string) error {
 	if err := s.writeIndex(idx); err != nil {
 		return err
 	}
-	// 删除文件（path 形如 /images/<basename>）
+	// 删除文件(path 形如 /images/<basename>)
 	base := filepath.Base(removed.Path)
 	_ = os.Remove(filepath.Join(s.ImagesDir, base))
 	return nil
 }
 
-// GetJob 返回任务快照。
+// Update 仅更新 index.json 里的镜像元数据.
+func (s *Service) Update(id string, spec UpdateSpec) error {
+	if id == "" || !idRe.MatchString(id) {
+		return fmt.Errorf("非法 id")
+	}
+	if spec.Architecture != "x86_64" && spec.Architecture != "aarch64" {
+		return fmt.Errorf("architecture 必须为 x86_64/aarch64")
+	}
+	for _, fw := range spec.Firmware {
+		if fw != "bios" && fw != "uefi" {
+			return fmt.Errorf("firmware 仅支持 bios/uefi")
+		}
+	}
+	if len(spec.Firmware) == 0 {
+		return fmt.Errorf("firmware 必填")
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	idx, err := s.readIndex()
+	if err != nil {
+		return err
+	}
+	for i := range idx.Images {
+		if idx.Images[i].ID != id {
+			continue
+		}
+		idx.Images[i].Name = spec.Name
+		idx.Images[i].OS = spec.OS
+		idx.Images[i].Version = spec.Version
+		idx.Images[i].Architecture = spec.Architecture
+		idx.Images[i].Firmware = spec.Firmware
+		idx.Images[i].Description = spec.Description
+		return s.writeIndex(idx)
+	}
+	return fmt.Errorf("镜像不存在: %s", id)
+}
+
+// GetJob 返回任务快照.
 func (s *Service) GetJob(id string) (Job, bool) {
 	s.jobsMu.Lock()
 	defer s.jobsMu.Unlock()
@@ -150,7 +199,7 @@ func (s *Service) setJob(id string, fn func(*Job)) {
 	fn(j)
 }
 
-// StartAdd 校验后启动异步添加任务，返回 jobID。
+// StartAdd 校验后启动异步添加任务,返回 jobID.
 func (s *Service) StartAdd(spec AddSpec) (string, error) {
 	if !idRe.MatchString(spec.ID) {
 		return "", fmt.Errorf("id 含非法字符")
@@ -182,7 +231,7 @@ func (s *Service) StartAdd(spec AddSpec) (string, error) {
 	return jobID, nil
 }
 
-// runAdd 执行获取源 → 转 raw → zstd → 登记。
+// runAdd 执行获取源 -> 转 raw -> zstd -> 登记.
 func (s *Service) runAdd(jobID string, spec AddSpec) {
 	ctx := context.Background()
 	work, err := os.MkdirTemp(s.ImagesDir, ".add-")
@@ -206,7 +255,7 @@ func (s *Service) runAdd(jobID string, spec AddSpec) {
 			s.fail(jobID, "本地文件不存在: "+spec.Source)
 			return
 		}
-		src = spec.Source // 直接用本地路径，不复制
+		src = spec.Source // 直接用本地路径,不复制
 	case "upload":
 		if !fileExists(spec.Source) {
 			s.fail(jobID, "上传临时文件缺失")
@@ -218,12 +267,12 @@ func (s *Service) runAdd(jobID string, spec AddSpec) {
 		return
 	}
 
-	// 2. 判定格式并转为 raw（qcow2/vmdk 等）
+	// 2. 判定格式并转为 raw(qcow2/vmdk 等)
 	finalZst := filepath.Join(s.ImagesDir, spec.ID+".raw.zst")
 	var rawSize int64
 	lower := strings.ToLower(src)
 	if strings.HasSuffix(lower, ".raw.zst") || strings.HasSuffix(lower, ".img.zst") {
-		// 已是压缩 raw，直接拷贝
+		// 已是压缩 raw,直接拷贝
 		s.setJob(jobID, func(j *Job) { j.Stage = "registering"; j.Message = "登记中" })
 		if err := copyFile(src, finalZst); err != nil {
 			s.fail(jobID, "拷贝失败: "+err.Error())
@@ -261,7 +310,7 @@ func (s *Service) runAdd(jobID string, spec AddSpec) {
 		return
 	}
 
-	// 4. 追加 index.json（原子）
+	// 4. 追加 index.json(原子)
 	s.mu.Lock()
 	idx, err := s.readIndex()
 	if err == nil {
@@ -270,6 +319,7 @@ func (s *Service) runAdd(jobID string, spec AddSpec) {
 			Architecture: spec.Architecture, Firmware: spec.Firmware,
 			Path: "/images/" + spec.ID + ".raw.zst", Format: "raw.zst",
 			CompressedSize: csize, RawSize: rawSize, SHA256Compressed: sum,
+			Description: spec.Description,
 		})
 		err = s.writeIndex(idx)
 	}
@@ -283,7 +333,7 @@ func (s *Service) runAdd(jobID string, spec AddSpec) {
 		j.Stage = "done"
 		j.Done = true
 		j.Percent = 100
-		j.Message = fmt.Sprintf("完成：%s (raw %d 字节)", spec.ID, rawSize)
+		j.Message = fmt.Sprintf("完成:%s (raw %d 字节)", spec.ID, rawSize)
 	})
 }
 
@@ -291,7 +341,7 @@ func (s *Service) fail(jobID, msg string) {
 	s.setJob(jobID, func(j *Job) { j.Stage = "failed"; j.Error = msg; j.Done = true })
 }
 
-// download 下载 URL 到 dst，带百分比进度。
+// download 下载 URL 到 dst,带百分比进度.
 func (s *Service) download(jobID, url, dst string) error {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -378,7 +428,7 @@ func zstdRawSize(path string) int64 {
 	if err != nil {
 		return 0
 	}
-	// 取第二行第 5 列的解压尺寸里的数字（尽力而为）
+	// 取第二行第 5 列的解压尺寸里的数字(尽力而为)
 	lines := strings.Split(string(out), "\n")
 	if len(lines) < 2 {
 		return 0

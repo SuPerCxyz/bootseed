@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# 列出镜像清单中的镜像，含架构列。
+# 列出镜像清单中的镜像,含架构列.
 #
-# 用法：scripts/list-images.sh [--json]
-#   默认：打印表格（ID / 名称 / 系统 / 版本 / 架构 / 固件 / 格式 / 大小）。
-#   --json：直接输出 index.json 原文。
+# 用法:scripts/list-images.sh [--json]
+#   默认:打印表格(ID / 名称 / 系统 / 版本 / 架构 / 固件 / 格式 / 大小).
+#   --json:直接输出 index.json 原文.
 
 set -euo pipefail
 
@@ -12,7 +12,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/_common.sh"
 
 INDEX="${DATA_DIR}/http/images/index.json"
-[[ -f "${INDEX}" ]] || die "清单不存在：${INDEX}"
+[[ -f "${INDEX}" ]] || die "清单不存在:${INDEX}"
 
 if [[ "${1:-}" == "--json" ]]; then
   cat "${INDEX}"

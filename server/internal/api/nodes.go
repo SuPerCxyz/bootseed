@@ -52,7 +52,7 @@ func (s *Server) handleNodeHeartbeat(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 
-// POST /api/nodes/deploy —— 部署开始/结束上报
+// POST /api/nodes/deploy -- 部署开始/结束上报
 func (s *Server) handleNodeDeploy(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeErr(w, http.StatusMethodNotAllowed, "方法不允许")
@@ -84,7 +84,7 @@ func (s *Server) handleNodeDeploy(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 
-// GET /api/nodes —— 节点列表
+// GET /api/nodes -- 节点列表
 func (s *Server) handleNodeList(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		writeErr(w, http.StatusMethodNotAllowed, "方法不允许")

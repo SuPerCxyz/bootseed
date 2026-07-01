@@ -15,7 +15,7 @@ import (
 	"github.com/anomalyco/bootseed/agent/internal/progress"
 )
 
-// fakeWriter 实现 io.WriteCloser + Sync 接口。
+// fakeWriter 实现 io.WriteCloser + Sync 接口.
 type fakeWriter struct {
 	buf *bytes.Buffer
 }

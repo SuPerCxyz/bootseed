@@ -1,4 +1,4 @@
-// Package api 实现 bootseed-server 门户的 HTTP API 与鉴权。
+// Package api 实现 bootseed-server 门户的 HTTP API 与鉴权.
 package api
 
 import (
@@ -15,11 +15,11 @@ import (
 	"github.com/anomalyco/bootseed/server/internal/store"
 )
 
-// Config 来自环境变量。
+// Config 来自环境变量.
 type Config struct {
-	Token         string        // PORTAL_TOKEN，空=管理操作免鉴权
+	Token         string        // PORTAL_TOKEN,空=管理操作免鉴权
 	OnlineTimeout time.Duration // NODE_ONLINE_TIMEOUT 秒
-	DataRoot      string        // 挂载的数据根（含 http/ 与 tftp/）
+	DataRoot      string        // 挂载的数据根(含 http/ 与 tftp/)
 	PXEServerIP   string
 	HTTPPort      string
 	PXEInterface  string
@@ -30,7 +30,7 @@ type Config struct {
 	IPXERef       string
 }
 
-// Server 聚合门户依赖。
+// Server 聚合门户依赖.
 type Server struct {
 	cfg    Config
 	store  *store.Store
@@ -38,7 +38,7 @@ type Server struct {
 	webFS  fs.FS
 }
 
-// New 构造门户 Server。
+// New 构造门户 Server.
 func New(cfg Config, st *store.Store, webFS fs.FS) *Server {
 	imgDir := filepath.Join(cfg.DataRoot, "http", "images")
 	return &Server{
@@ -49,7 +49,7 @@ func New(cfg Config, st *store.Store, webFS fs.FS) *Server {
 	}
 }
 
-// Handler 组装路由。
+// Handler 组装路由.
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -58,10 +58,11 @@ func (s *Server) Handler() http.Handler {
 	})
 	mux.HandleFunc("/api/server-info", s.handleServerInfo)
 
-	// 节点登记（agent 上报；默认免鉴权，内部网段使用）
+	// 节点登记(agent 上报;默认免鉴权,内部网段使用)
 	mux.HandleFunc("/api/nodes/register", s.handleNodeRegister)
 	mux.HandleFunc("/api/nodes/heartbeat", s.handleNodeHeartbeat)
 	mux.HandleFunc("/api/nodes/deploy", s.handleNodeDeploy)
+	mux.HandleFunc("/api/nodes/", s.handleNodeProxy)
 	mux.HandleFunc("/api/nodes", s.handleNodeList) // GET 列表
 
 	// 镜像
@@ -70,9 +71,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/images/jobs/", s.handleImageJob)     // GET 任务进度
 	mux.HandleFunc("/api/images/upload", s.handleImageUpload) // POST 上传(需鉴权)
 
-	// 静态下载目录（原 Nginx 职责）：/boot /alpine /images → /data/http/...
-	// 不做 StripPrefix：请求 /boot/boot.ipxe 直接解析为 httpRoot + /boot/boot.ipxe。
-	// http.FileServer 原生支持 Range，且 WriteTimeout=0 可避免慢客户端大镜像被截断。
+	// 静态下载目录(原 Nginx 职责):/boot /alpine /images -> /data/http/...
+	// 不做 StripPrefix:请求 /boot/boot.ipxe 直接解析为 httpRoot + /boot/boot.ipxe.
+	// http.FileServer 原生支持 Range,且 WriteTimeout=0 可避免慢客户端大镜像被截断.
 	httpRoot := filepath.Join(s.cfg.DataRoot, "http")
 	fs := http.FileServer(http.Dir(httpRoot))
 	mux.Handle("/boot/", fs)
@@ -98,7 +99,7 @@ func writeErr(w http.ResponseWriter, code int, msg string) {
 	writeJSON(w, code, map[string]string{"error": msg})
 }
 
-// authOK 校验管理口令。Token 为空则放行（免鉴权模式）。
+// authOK 校验管理口令.Token 为空则放行(免鉴权模式).
 func (s *Server) authOK(r *http.Request) bool {
 	if s.cfg.Token == "" {
 		return true
@@ -133,11 +134,7 @@ func (s *Server) handleServerInfo(w http.ResponseWriter, r *http.Request) {
 		AlpineVersion: s.cfg.AlpineVersion,
 		AgentVersion:  s.cfg.AgentVersion,
 		IPXERef:       s.cfg.IPXERef,
-		IPXEFiles: map[string]bool{
-			"x86/undionly.kpxe":   s.exists("tftp", "x86", "undionly.kpxe"),
-			"x86_64/snponly.efi":  s.exists("tftp", "x86_64", "snponly.efi"),
-			"aarch64/snponly.efi": s.exists("tftp", "aarch64", "snponly.efi"),
-		},
+		IPXEFiles:     s.ipxeFiles(),
 		AlpineBuilds: map[string]model.AlpineBuild{
 			"x86_64":  s.alpineBuild("x86_64"),
 			"aarch64": s.alpineBuild("aarch64"),
@@ -154,12 +151,28 @@ func (s *Server) exists(parts ...string) bool {
 	return err == nil
 }
 
-// alpineBuild 读取 alpine/<arch>/manifest.json 给出结构化构建信息。
+func (s *Server) ipxeFiles() []model.FileStatus {
+	files := []string{
+		"x86_64/undionly.kpxe",
+		"x86_64-uefi/snponly.efi",
+		"aarch64/snponly.efi",
+	}
+	out := make([]model.FileStatus, 0, len(files))
+	for _, name := range files {
+		out = append(out, model.FileStatus{
+			Path: name, Exists: s.exists("tftp", filepath.FromSlash(name)),
+		})
+	}
+	return out
+}
+
+// alpineBuild 读取 alpine/<arch>/manifest.json 给出结构化构建信息.
 func (s *Server) alpineBuild(arch string) model.AlpineBuild {
+	required := []string{"vmlinuz", "initramfs-deploy", "modloop"}
 	mp := filepath.Join(s.cfg.DataRoot, "http", "alpine", arch, "manifest.json")
 	b, err := os.ReadFile(mp)
 	if err != nil {
-		return model.AlpineBuild{Note: "未构建"}
+		return s.buildStatus(arch, model.AlpineBuild{Note: "未构建"}, nil, nil, required)
 	}
 	var m struct {
 		KernelVersion string   `json:"kernel_version"`
@@ -167,19 +180,44 @@ func (s *Server) alpineBuild(arch string) model.AlpineBuild {
 		BuildTime     string   `json:"build_time"`
 		Modules       []string `json:"included_modules"`
 		Firmware      []string `json:"included_firmware_packages"`
+		Tools         []string `json:"included_runtime_packages"`
 	}
 	if json.Unmarshal(b, &m) != nil {
-		return model.AlpineBuild{Note: "manifest 解析失败"}
+		return s.buildStatus(arch, model.AlpineBuild{Note: "manifest 解析失败"}, nil, nil, required)
 	}
-	ready := s.exists("http", "alpine", arch, "vmlinuz") &&
-		s.exists("http", "alpine", arch, "initramfs-deploy") &&
-		s.exists("http", "alpine", arch, "modloop")
 	bld := model.AlpineBuild{
-		Ready: ready, KernelVersion: m.KernelVersion, AlpineVersion: m.AlpineVersion,
+		KernelVersion: m.KernelVersion, AlpineVersion: m.AlpineVersion,
 		Modules: len(m.Modules), Firmware: len(m.Firmware), BuildTime: m.BuildTime,
+		IncludedModules: m.Modules, IncludedFirmware: m.Firmware, IncludedTools: m.Tools,
 	}
-	if !ready {
+	return s.buildStatus(arch, bld, m.Modules, m.Firmware, required)
+}
+
+func (s *Server) buildStatus(arch string, bld model.AlpineBuild, modules, firmware, required []string) model.AlpineBuild {
+	statuses := make([]model.FileStatus, 0, len(required))
+	existing := make([]string, 0, len(required))
+	missing := make([]string, 0, len(required))
+	for _, name := range required {
+		ok := s.exists("http", "alpine", arch, name)
+		statuses = append(statuses, model.FileStatus{Path: name, Exists: ok})
+		if ok {
+			existing = append(existing, name)
+		} else {
+			missing = append(missing, name)
+		}
+	}
+	bld.RequiredFiles = statuses
+	bld.ExistingFiles = existing
+	bld.MissingFiles = missing
+	bld.Ready = len(missing) == 0
+	if !bld.Ready && bld.Note == "" {
 		bld.Note = "文件缺失"
+	}
+	if modules != nil {
+		bld.IncludedModules = modules
+	}
+	if firmware != nil {
+		bld.IncludedFirmware = firmware
 	}
 	return bld
 }

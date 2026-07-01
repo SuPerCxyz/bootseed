@@ -1,0 +1,14 @@
+# x86_64 运行期工具包报告
+# 已安装工具包 (12):
+bind-tools
+curl
+ethtool
+hdparm
+nvme-cli
+parted
+pciutils
+smartmontools
+sysstat
+tcpdump
+usbutils
+wget

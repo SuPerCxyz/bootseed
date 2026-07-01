@@ -1,7 +1,7 @@
-// Package drivers 列出已加载的内核模块以及它们的简要信息。
+// Package drivers 列出已加载的内核模块以及它们的简要信息.
 //
-// 主要用途是给前端展示“当前内存系统都加载了哪些网卡 / 存储 / 控制器驱动”，
-// 并可标记关键模块是否在 initramfs 中存在但尚未绑定到任何设备。
+// 主要用途是给前端展示"当前内存系统都加载了哪些网卡 / 存储 / 控制器驱动",
+// 并可标记关键模块是否在 initramfs 中存在但尚未绑定到任何设备.
 package drivers
 
 import (
@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-// Module 描述 /proc/modules 中的一条记录。
+// Module 描述 /proc/modules 中的一条记录.
 type Module struct {
 	Name string `json:"name"`
 	Size int64  `json:"size"`
@@ -19,9 +19,9 @@ type Module struct {
 	By   string `json:"by,omitempty"`
 }
 
-// Loaded 返回当前已加载的内核模块列表。
+// Loaded 返回当前已加载的内核模块列表.
 //
-// 在没有 /proc/modules（例如开发机上跑测试）时返回空切片，不返回错误。
+// 在没有 /proc/modules(例如开发机上跑测试)时返回空切片,不返回错误.
 func Loaded() []Module {
 	f, err := os.Open("/proc/modules")
 	if err != nil {
@@ -48,10 +48,10 @@ func Loaded() []Module {
 	return out
 }
 
-// Report 是 GET /api/drivers 的响应。
+// Report 是 GET /api/drivers 的响应.
 type Report struct {
 	Loaded []Module `json:"loaded"`
 }
 
-// Collect 收集驱动报告。
+// Collect 收集驱动报告.
 func Collect() *Report { return &Report{Loaded: Loaded()} }

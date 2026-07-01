@@ -1,4 +1,4 @@
-// Package store 用嵌入式库 bbolt 持久化节点与部署历史（纯 Go、单文件、无 CGO）。
+// Package store 用嵌入式库 bbolt 持久化节点与部署历史(纯 Go,单文件,无 CGO).
 package store
 
 import (
@@ -13,12 +13,12 @@ import (
 
 var bucketNodes = []byte("nodes")
 
-// Store 封装 bbolt 数据库。
+// Store 封装 bbolt 数据库.
 type Store struct {
 	db *bolt.DB
 }
 
-// Open 打开/创建数据库文件并初始化 bucket。
+// Open 打开/创建数据库文件并初始化 bucket.
 func Open(path string) (*Store, error) {
 	db, err := bolt.Open(path, 0o600, &bolt.Options{Timeout: 5 * time.Second})
 	if err != nil {
@@ -35,10 +35,10 @@ func Open(path string) (*Store, error) {
 	return &Store{db: db}, nil
 }
 
-// Close 关闭数据库。
+// Close 关闭数据库.
 func (s *Store) Close() error { return s.db.Close() }
 
-// get 读取节点（不存在返回 nil）。
+// get 读取节点(不存在返回 nil).
 func (s *Store) get(tx *bolt.Tx, uuid string) (*model.Node, error) {
 	b := tx.Bucket(bucketNodes).Get([]byte(uuid))
 	if b == nil {
@@ -59,7 +59,7 @@ func put(tx *bolt.Tx, n *model.Node) error {
 	return tx.Bucket(bucketNodes).Put([]byte(n.UUID), data)
 }
 
-// Register 注册/更新节点基本信息（开机上报）。已存在则保留首次时间与部署历史。
+// Register 注册/更新节点基本信息(开机上报).已存在则保留首次时间与部署历史.
 func (s *Store) Register(in model.Node, now time.Time) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		cur, err := s.get(tx, in.UUID)
@@ -74,17 +74,28 @@ func (s *Store) Register(in model.Node, now time.Time) error {
 			}
 			return put(tx, &in)
 		}
-		// 更新可变字段，保留历史
+		// 更新可变字段,保留历史
+		cur.Hostname = in.Hostname
 		cur.MAC, cur.IP = in.MAC, in.IP
 		cur.Architecture, cur.BootMode = in.Architecture, in.BootMode
 		cur.KernelVersion, cur.AlpineVersion = in.KernelVersion, in.AlpineVersion
 		cur.AgentVersion = in.AgentVersion
+		cur.AgentPort = in.AgentPort
+		cur.AgentURL = in.AgentURL
+		cur.Origin = in.Origin
+		cur.NetworkMode = in.NetworkMode
+		cur.NetworkStatus = in.NetworkStatus
+		cur.ManagementIF = in.ManagementIF
+		cur.Netmask = in.Netmask
+		cur.Gateway = in.Gateway
+		cur.DNS = in.DNS
+		cur.LastError = in.LastError
 		cur.LastSeen = now
 		return put(tx, cur)
 	})
 }
 
-// Heartbeat 刷新 last_seen（不存在则忽略）。
+// Heartbeat 刷新 last_seen(不存在则忽略).
 func (s *Store) Heartbeat(uuid string, now time.Time) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		n, err := s.get(tx, uuid)
@@ -96,7 +107,7 @@ func (s *Store) Heartbeat(uuid string, now time.Time) error {
 	})
 }
 
-// DeployStart 追加一条部署记录（result=running）。
+// DeployStart 追加一条部署记录(result=running).
 func (s *Store) DeployStart(uuid, imageID, target string, now time.Time) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		n, err := s.get(tx, uuid)
@@ -111,7 +122,7 @@ func (s *Store) DeployStart(uuid, imageID, target string, now time.Time) error {
 	})
 }
 
-// DeployEnd 更新最后一条部署记录的结果。
+// DeployEnd 更新最后一条部署记录的结果.
 func (s *Store) DeployEnd(uuid, result string, bytes int64, errMsg string, now time.Time) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		n, err := s.get(tx, uuid)
@@ -126,11 +137,27 @@ func (s *Store) DeployEnd(uuid, result string, bytes int64, errMsg string, now t
 			d.BytesWritten = bytes
 			d.Error = errMsg
 		}
+		n.LastError = errMsg
 		return put(tx, n)
 	})
 }
 
-// List 返回全部节点视图，按 last_seen 倒序。
+// Get 返回单个节点视图.
+func (s *Store) Get(uuid string, now time.Time, onlineTimeout time.Duration) (*model.NodeView, error) {
+	var out *model.NodeView
+	err := s.db.View(func(tx *bolt.Tx) error {
+		n, err := s.get(tx, uuid)
+		if err != nil || n == nil {
+			return err
+		}
+		view := makeNodeView(*n, now, onlineTimeout)
+		out = &view
+		return nil
+	})
+	return out, err
+}
+
+// List 返回全部节点视图,按 last_seen 倒序.
 func (s *Store) List(now time.Time, onlineTimeout time.Duration) ([]model.NodeView, error) {
 	var out []model.NodeView
 	err := s.db.View(func(tx *bolt.Tx) error {
@@ -139,17 +166,37 @@ func (s *Store) List(now time.Time, onlineTimeout time.Duration) ([]model.NodeVi
 			if err := json.Unmarshal(v, &n); err != nil {
 				return nil // 跳过损坏条目
 			}
-			status := "offline"
-			if n.Online(now, onlineTimeout) {
-				status = "online"
-			}
-			out = append(out, model.NodeView{
-				Node: n, Status: status,
-				LastResultV: n.LastResult(), DeployedEver: n.DeployedEver(),
-			})
+			out = append(out, makeNodeView(n, now, onlineTimeout))
 			return nil
 		})
 	})
 	sort.Slice(out, func(i, j int) bool { return out[i].LastSeen.After(out[j].LastSeen) })
 	return out, err
+}
+
+func makeNodeView(n model.Node, now time.Time, onlineTimeout time.Duration) model.NodeView {
+	status := "offline"
+	if n.Online(now, onlineTimeout) {
+		status = "online"
+	}
+	lifecycle := "offline"
+	switch last := n.LastResult(); {
+	case status == "online" && last == "running":
+		lifecycle = "deploying"
+	case status == "online":
+		lifecycle = "bootseed_online"
+	case last == "completed":
+		lifecycle = "completed"
+	case last == "failed":
+		lifecycle = "failed"
+	case last == "cancelled":
+		lifecycle = "failed"
+	}
+	return model.NodeView{
+		Node:         n,
+		Status:       status,
+		LastResultV:  n.LastResult(),
+		DeployedEver: n.DeployedEver(),
+		Lifecycle:    lifecycle,
+	}
 }

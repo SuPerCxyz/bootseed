@@ -1,5 +1,5 @@
 # aarch64 内核模块报告 (KVER=6.6.142-0-lts)
-# 已包含 (72):
+# 已包含 (73):
 e1000
 e1000e
 igb
@@ -36,6 +36,7 @@ crc32
 8021q
 bonding
 bridge
+af_packet
 megaraid_sas
 mpt2sas
 mpt3sas

@@ -27,8 +27,9 @@ func (s *Server) handleContext(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 	netinfo := system.CollectNodeNet()
 	mem := system.ReadMem()
+	netStatus := system.ReadNetStatus()
 
-	// Alpine 版本：优先内核参数，回退读取 /etc/alpine-release。
+	// Alpine 版本:优先内核参数,回退读取 /etc/alpine-release.
 	alpineVer := b.AlpineVersion
 	if alpineVer == "" {
 		alpineVer = system.AlpineRelease()
@@ -36,13 +37,19 @@ func (s *Server) handleContext(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"node_ip":              netinfo.IP,
+		"node_iface":           netinfo.Interface,
 		"node_netmask":         netinfo.Netmask,
 		"node_gateway":         netinfo.Gateway,
 		"node_dns":             netinfo.DNS,
+		"hostname":             system.Hostname(),
 		"node_architecture":    b.NodeArchitecture.String(),
 		"runtime_architecture": b.RuntimeArchitecture.String(),
 		"uname_architecture":   b.UnameArchitecture.String(),
 		"boot_mode":            string(b.BootMode),
+		"origin":               firstNonEmpty(b.Origin, "pxe"),
+		"network_mode":         firstNonEmpty(netStatus.Mode, "dhcp"),
+		"network_status":       firstNonEmpty(netStatus.Status, "ok"),
+		"network_error":        netStatus.Message,
 		"node_mac":             b.NodeMAC,
 		"node_uuid":            b.NodeUUID,
 		"deploy_server":        b.DeployServer,
@@ -68,7 +75,7 @@ func (s *Server) handleDrivers(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, drivers.Collect())
 }
 
-// imageView 是返回给前端的镜像视图，附带兼容性标记。
+// imageView 是返回给前端的镜像视图,附带兼容性标记.
 type imageView struct {
 	images.Image
 	Compatible bool   `json:"compatible"`
@@ -85,9 +92,9 @@ func (s *Server) handleImages(w http.ResponseWriter, r *http.Request) {
 		v := imageView{Image: img, Compatible: images.IsCompatible(img, arch, mode)}
 		if !v.Compatible {
 			if img.Architecture != arch.String() {
-				v.Reason = "架构不兼容：镜像 " + img.Architecture + " ≠ 节点 " + arch.String()
+				v.Reason = "架构不兼容:镜像 " + img.Architecture + " != 节点 " + arch.String()
 			} else {
-				v.Reason = "固件模式不兼容（节点 " + string(mode) + "）"
+				v.Reason = "固件模式不兼容(节点 " + string(mode) + ")"
 			}
 		}
 		out = append(out, v)
@@ -100,7 +107,7 @@ func (s *Server) handleImages(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// POST /api/images/reload —— 从服务端清单重新加载。
+// POST /api/images/reload -- 从服务端清单重新加载.
 func (s *Server) handleImagesReload(w http.ResponseWriter, r *http.Request) {
 	if !requireMethod(w, r, http.MethodPost) {
 		return
@@ -155,7 +162,7 @@ func (s *Server) handleDeployCancel(w http.ResponseWriter, r *http.Request) {
 	if s.manager.Cancel() {
 		writeJSON(w, http.StatusOK, map[string]any{
 			"cancelled": true,
-			"warning":   "目标盘可能处于不完整状态，无法启动",
+			"warning":   "目标盘可能处于不完整状态,无法启动",
 		})
 		return
 	}
@@ -168,7 +175,7 @@ func (s *Server) handleReboot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if s.manager.IsRunning() {
-		writeError(w, http.StatusConflict, "部署运行中，禁止重启")
+		writeError(w, http.StatusConflict, "部署运行中,禁止重启")
 		return
 	}
 	if err := system.Reboot(r.Context()); err != nil {
@@ -184,7 +191,7 @@ func (s *Server) handlePoweroff(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if s.manager.IsRunning() {
-		writeError(w, http.StatusConflict, "部署运行中，禁止关机")
+		writeError(w, http.StatusConflict, "部署运行中,禁止关机")
 		return
 	}
 	if err := system.Poweroff(r.Context()); err != nil {
@@ -194,5 +201,14 @@ func (s *Server) handlePoweroff(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"poweringOff": true})
 }
 
-// 引用 deploy 包以确保类型可见（在 deploy.go 中使用）。
+// 引用 deploy 包以确保类型可见(在 deploy.go 中使用).
 var _ = deploy.StateIdle
+
+func firstNonEmpty(parts ...string) string {
+	for _, part := range parts {
+		if part != "" {
+			return part
+		}
+	}
+	return ""
+}

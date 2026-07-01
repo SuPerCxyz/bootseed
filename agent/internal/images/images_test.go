@@ -55,7 +55,7 @@ func TestFilterCompatible(t *testing.T) {
 	if len(got) != 1 || got[0].ID != "rocky-9-x86_64-uefi" {
 		t.Fatalf("x86_64 BIOS 应匹配支持 bios 的 1 个: %+v", got)
 	}
-	// ARM64 + BIOS -> 任何 firmware=uefi 的 ARM64 镜像都不允许（ARM64 第一版只支持 UEFI）
+	// ARM64 + BIOS -> 任何 firmware=uefi 的 ARM64 镜像都不允许(ARM64 第一版只支持 UEFI)
 	got = c.FilterCompatible(system.ArchAArch64, system.BootModeBIOS)
 	if len(got) != 0 {
 		t.Fatalf("aarch64 + BIOS 不应有匹配: %+v", got)

@@ -18,7 +18,7 @@ import (
 	"github.com/anomalyco/bootseed/agent/internal/progress"
 )
 
-// Pipeline 描述一次镜像写盘流水线所需的输入参数。
+// Pipeline 描述一次镜像写盘流水线所需的输入参数.
 type Pipeline struct {
 	Image        images.Image
 	ImageURL     string
@@ -26,11 +26,11 @@ type Pipeline struct {
 	VerifyRaw    bool
 	HTTPClient   *http.Client
 	Tracker      *progress.Tracker
-	// 当为 nil 时使用 os.OpenFile；测试可以 mock。
+	// 当为 nil 时使用 os.OpenFile;测试可以 mock.
 	OpenTarget func(path string) (io.WriteCloser, error)
 }
 
-// Result 是 pipeline 执行结果。
+// Result 是 pipeline 执行结果.
 type Result struct {
 	BytesWritten       int64
 	CompressedSHA256   string
@@ -42,8 +42,8 @@ type Result struct {
 	Duration           time.Duration
 }
 
-// Run 执行：HTTP 流式下载 → SHA256(compressed) → decompress → SHA256(raw)
-// → 写入目标磁盘 → fsync。可被 ctx 取消。
+// Run 执行:HTTP 流式下载 -> SHA256(compressed) -> decompress -> SHA256(raw)
+// -> 写入目标磁盘 -> fsync.可被 ctx 取消.
 func (p *Pipeline) Run(ctx context.Context) (*Result, error) {
 	if p.Tracker == nil {
 		p.Tracker = progress.NewTracker()
@@ -145,7 +145,7 @@ func (p *Pipeline) Run(ctx context.Context) (*Result, error) {
 	return res, nil
 }
 
-// counterReader 包装 io.Reader 并在每次读取时回调字节数 + 检查 ctx。
+// counterReader 包装 io.Reader 并在每次读取时回调字节数 + 检查 ctx.
 type counterReader struct {
 	r      io.Reader
 	onRead func(int)
@@ -184,8 +184,8 @@ func decompressByFormat(src io.Reader, format string) (io.Reader, io.Closer, err
 	return nil, nil, fmt.Errorf("不支持的镜像格式: %s", format)
 }
 
-// startSubprocess 用结构化参数调用解压外部程序。
-// 关键：不使用 sh -c，stdin 走 pipe，stderr 收集，返回 stdout reader。
+// startSubprocess 用结构化参数调用解压外部程序.
+// 关键:不使用 sh -c,stdin 走 pipe,stderr 收集,返回 stdout reader.
 func startSubprocess(src io.Reader, name string, args ...string) (io.Reader, io.Closer, error) {
 	cmd := exec.Command(name, args...)
 	stdin, err := cmd.StdinPipe()
@@ -225,11 +225,11 @@ func (s *subprocessCloser) Close() error {
 	return nil
 }
 
-// copyWithProgress 复制 src->dst，并向 tracker 报告字节数；
-// 写完每个 chunk 检查 ctx 是否被取消。
+// copyWithProgress 复制 src->dst,并向 tracker 报告字节数;
+// 写完每个 chunk 检查 ctx 是否被取消.
 func copyWithProgress(ctx context.Context, dst io.Writer, src io.Reader,
 	tracker *progress.Tracker, rawHash hash.Hash) (int64, error) {
-	_ = rawHash // hash 已经被 io.TeeReader 喂入；这里只是为了显式提示生命周期
+	_ = rawHash // hash 已经被 io.TeeReader 喂入;这里只是为了显式提示生命周期
 	buf := make([]byte, 4*1024*1024)
 	var written int64
 	for {

@@ -1,4 +1,4 @@
-// Package config 加载与校验 Agent 运行所需的配置。
+// Package config 加载与校验 Agent 运行所需的配置.
 package config
 
 import (
@@ -11,7 +11,7 @@ import (
 	"github.com/anomalyco/bootseed/agent/internal/system"
 )
 
-// Config 描述 Agent 运行配置。
+// Config 描述 Agent 运行配置.
 type Config struct {
 	ListenAddr             string
 	DeployServer           string
@@ -25,9 +25,9 @@ type Config struct {
 	StorageDeviceTimeout   int
 }
 
-// FromEnv 从环境变量与启动参数装配 Config。
+// FromEnv 从环境变量与启动参数装配 Config.
 //
-// 默认值：
+// 默认值:
 //   - ListenAddr:               :8080
 //   - DeployServer:             由 cmdline 注入
 //   - AllowCustomImageServer:   false
@@ -60,8 +60,8 @@ func FromEnv() *Config {
 	return c
 }
 
-// ValidateImageURL 检查镜像 URL 是否符合策略。
-// 它不做 DNS 解析，只做语法 + 协议校验。
+// ValidateImageURL 检查镜像 URL 是否符合策略.
+// 它不做 DNS 解析,只做语法 + 协议校验.
 func (c *Config) ValidateImageURL(raw string) error {
 	if raw == "" {
 		return fmt.Errorf("镜像 URL 为空")
@@ -85,7 +85,7 @@ func (c *Config) ValidateImageURL(raw string) error {
 	return nil
 }
 
-// SupportedArchitectures 从环境变量读取允许的架构集合。
+// SupportedArchitectures 从环境变量读取允许的架构集合.
 func SupportedArchitectures() []system.Architecture {
 	raw := envDefault("SUPPORTED_ARCHITECTURES", "x86_64,aarch64")
 	parts := strings.Split(raw, ",")

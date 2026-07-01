@@ -1,0 +1,87 @@
+name: Build and Publish Docker Images
+
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    if: github.ref_type == 'tag' || github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image_name: bootseed-pxe
+            dockerfile: ./pxe/Dockerfile
+            context: ./pxe
+          - image_name: bootseed-server
+            dockerfile: ./server/Dockerfile
+            context: ./server
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Compute image tags
+        id: tags
+        shell: bash
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          GITHUB_REF_TYPE: ${{ github.ref_type }}
+        run: |
+          set -euo pipefail
+          image="docker.io/superc/${{ matrix.image_name }}"
+
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            version_tag="${GITHUB_REF_NAME}"
+            {
+              echo "tags<<EOF"
+              echo "${image}:${version_tag}"
+              echo "${image}:latest"
+              echo "EOF"
+            } >> "${GITHUB_OUTPUT}"
+            echo "channel=release" >> "${GITHUB_OUTPUT}"
+          else
+            timestamp="$(date -u +%Y%m%d%H%M)"
+            {
+              echo "tags<<EOF"
+              echo "${image}:${timestamp}"
+              echo "${image}:dev-latest"
+              echo "EOF"
+            } >> "${GITHUB_OUTPUT}"
+            echo "channel=dev" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.tags.outputs.tags }}
+          labels: |
+            org.opencontainers.image.title=${{ matrix.image_name }}
+            org.opencontainers.image.description=BootSeed container image
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}

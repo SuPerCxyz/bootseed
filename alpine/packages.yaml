@@ -1,0 +1,17 @@
+default:
+  - bind-tools
+  - curl
+  - ethtool
+  - hdparm
+  - nvme-cli
+  - parted
+  - pciutils
+  - smartmontools
+  - sysstat
+  - tcpdump
+  - usbutils
+  - wget
+
+architectures:
+  x86_64: []
+  aarch64: []

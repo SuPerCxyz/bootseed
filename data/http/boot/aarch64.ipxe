@@ -1,8 +1,8 @@
 #!ipxe
-# BootSeed aarch64 架构启动脚本（由 generate-config.sh 生成，请勿手改）
+# BootSeed aarch64 架构启动脚本(由 generate-config.sh 生成,请勿手改)
 #
-# 流程：设置部署上下文变量 -> 加载 Alpine 内核 + initramfs -> boot。
-# 路径中的架构为固定字面量 aarch64，不接受外部输入插值。
+# 流程:设置部署上下文变量 -> 加载 Alpine 内核 + initramfs -> boot.
+# 路径中的架构为固定字面量 aarch64,不接受外部输入插值.
 
 set node_arch aarch64
 set deploy_server http://192.168.100.161:8088
@@ -13,6 +13,6 @@ set node_uuid ${uuid}
 echo BootSeed: 架构 ${node_arch}, MAC ${node_mac}
 echo BootSeed: 部署服务 ${deploy_server}
 
-kernel ${deploy_server}/alpine/aarch64/vmlinuz console=ttyAMA0,115200n8 console=ttyS0,115200n8 console=tty0 modules=loop,squashfs,sd-mod,usb-storage modloop=${deploy_server}/alpine/aarch64/modloop deploy_server=${deploy_server} node_arch=${node_arch} node_mac=${node_mac} node_uuid=${node_uuid} agent_port=${agent_port} network_device_timeout=60 storage_device_timeout=90
+kernel ${deploy_server}/alpine/aarch64/vmlinuz console=ttyAMA0,115200n8 console=ttyS0,115200n8 console=tty0 modules=loop,squashfs,sd-mod,usb-storage modloop=${deploy_server}/alpine/aarch64/modloop deploy_server=${deploy_server} node_arch=${node_arch} node_mac=${node_mac} node_uuid=${node_uuid} agent_port=${agent_port} bootseed_origin=pxe network_device_timeout=60 storage_device_timeout=90
 initrd ${deploy_server}/alpine/aarch64/initramfs-deploy
 boot

@@ -1,10 +1,10 @@
-// Package api 实现 bootseed-agent 的 HTTP API 与 SSE 进度推送。
+// Package api 实现 bootseed-agent 的 HTTP API 与 SSE 进度推送.
 //
-// 安全约定（见 docs/IMPLEMENTATION.md §10）：
+// 安全约定(见 docs/IMPLEMENTATION.md §10):
 //   - 浏览器提交的 image_server / architecture / format / raw_size / checksum
-//     一律不信任，必须从服务端清单重新获取。
-//   - 镜像架构由后端在 POST /api/deploy 时强制再校验。
-//   - 写盘目标必须解析到稳定路径（除非显式放开 ALLOW_UNSTABLE_DISK_NAME）。
+//     一律不信任,必须从服务端清单重新获取.
+//   - 镜像架构由后端在 POST /api/deploy 时强制再校验.
+//   - 写盘目标必须解析到稳定路径(除非显式放开 ALLOW_UNSTABLE_DISK_NAME).
 package api
 
 import (
@@ -23,14 +23,14 @@ import (
 	"github.com/anomalyco/bootseed/agent/internal/report"
 )
 
-// Server 聚合 Agent 运行所需的全部依赖。
+// Server 聚合 Agent 运行所需的全部依赖.
 type Server struct {
 	cfg        *config.Config
 	boot       *bootcontext.BootContext
 	catalog    *images.Catalog
 	manager    *deploy.Manager
 	autoReboot bool
-	archError  error // 启动参数架构与运行架构不一致时非 nil，禁止部署
+	archError  error // 启动参数架构与运行架构不一致时非 nil,禁止部署
 	report     *report.Client
 
 	mu         sync.RWMutex
@@ -39,7 +39,7 @@ type Server struct {
 	webFS      fs.FS
 }
 
-// Options 构造 Server 的参数。
+// Options 构造 Server 的参数.
 type Options struct {
 	Config     *config.Config
 	Boot       *bootcontext.BootContext
@@ -50,7 +50,7 @@ type Options struct {
 	Report     *report.Client
 }
 
-// New 构造 Server。
+// New 构造 Server.
 func New(opt Options) *Server {
 	return &Server{
 		cfg:        opt.Config,
@@ -64,7 +64,7 @@ func New(opt Options) *Server {
 	}
 }
 
-// Handler 返回组装好的 http.Handler。
+// Handler 返回组装好的 http.Handler.
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 
@@ -106,7 +106,7 @@ func writeError(w http.ResponseWriter, code int, msg string) {
 	writeJSON(w, code, apiError{Error: msg})
 }
 
-// requireMethod 校验 HTTP 方法，不匹配则写 405 并返回 false。
+// requireMethod 校验 HTTP 方法,不匹配则写 405 并返回 false.
 func requireMethod(w http.ResponseWriter, r *http.Request, method string) bool {
 	if r.Method != method {
 		writeError(w, http.StatusMethodNotAllowed, "方法不允许")
@@ -121,17 +121,17 @@ func logMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// currentTracker 返回当前部署的进度跟踪器（可能为 nil）。
+// currentTracker 返回当前部署的进度跟踪器(可能为 nil).
 func (s *Server) currentTracker() *progress.Tracker {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.tracker
 }
 
-// freshContext 返回一个不受请求取消影响的背景 context，用于部署任务。
+// freshContext 返回一个不受请求取消影响的背景 context,用于部署任务.
 func backgroundContext() context.Context {
 	return context.Background()
 }
 
-// nowRFC3339 提供统一时间格式。
+// nowRFC3339 提供统一时间格式.
 func nowRFC3339() string { return time.Now().Format(time.RFC3339) }

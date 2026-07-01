@@ -1,4 +1,4 @@
-// Package images 负责加载、过滤、校验镜像清单。
+// Package images 负责加载,过滤,校验镜像清单.
 package images
 
 import (
@@ -15,9 +15,9 @@ import (
 	"github.com/anomalyco/bootseed/agent/internal/system"
 )
 
-// Image 描述清单中的一条镜像。
+// Image 描述清单中的一条镜像.
 //
-// schema_version 当前固定为 1。
+// schema_version 当前固定为 1.
 type Image struct {
 	ID               string   `json:"id"`
 	Name             string   `json:"name"`
@@ -34,13 +34,13 @@ type Image struct {
 	Description      string   `json:"description"`
 }
 
-// Index 是 index.json 的整体结构。
+// Index 是 index.json 的整体结构.
 type Index struct {
 	SchemaVersion int     `json:"schema_version"`
 	Images        []Image `json:"images"`
 }
 
-// Catalog 包含已加载的镜像与元信息。
+// Catalog 包含已加载的镜像与元信息.
 type Catalog struct {
 	mu     sync.RWMutex
 	index  Index
@@ -48,10 +48,10 @@ type Catalog struct {
 	loaded time.Time
 }
 
-// NewCatalog 创建空 Catalog。
+// NewCatalog 创建空 Catalog.
 func NewCatalog() *Catalog { return &Catalog{} }
 
-// LoadFromReader 解析 reader 中的 JSON 镜像清单。
+// LoadFromReader 解析 reader 中的 JSON 镜像清单.
 func (c *Catalog) LoadFromReader(r io.Reader, source string) error {
 	dec := json.NewDecoder(r)
 	dec.DisallowUnknownFields()
@@ -73,10 +73,10 @@ func (c *Catalog) LoadFromReader(r io.Reader, source string) error {
 	return nil
 }
 
-// LoadFromHTTP 从 base URL 拉取 /images/index.json。
+// LoadFromHTTP 从 base URL 拉取 /images/index.json.
 func (c *Catalog) LoadFromHTTP(base string) error {
 	if base == "" {
-		return fmt.Errorf("deploy_server 为空，无法加载镜像清单")
+		return fmt.Errorf("deploy_server 为空,无法加载镜像清单")
 	}
 	u := strings.TrimRight(base, "/") + "/images/index.json"
 	req, err := http.NewRequest("GET", u, nil)
@@ -96,7 +96,7 @@ func (c *Catalog) LoadFromHTTP(base string) error {
 	return c.LoadFromReader(resp.Body, u)
 }
 
-// LoadFromFile 从本地文件加载（主要用于测试 / 离线）。
+// LoadFromFile 从本地文件加载(主要用于测试 / 离线).
 func (c *Catalog) LoadFromFile(p string) error {
 	f, err := os.Open(p)
 	if err != nil {
@@ -106,7 +106,7 @@ func (c *Catalog) LoadFromFile(p string) error {
 	return c.LoadFromReader(f, p)
 }
 
-// All 返回全部镜像（按当前架构 / 模式过滤）。
+// All 返回全部镜像(按当前架构 / 模式过滤).
 func (c *Catalog) All() []Image {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -115,7 +115,7 @@ func (c *Catalog) All() []Image {
 	return out
 }
 
-// FilterCompatible 返回与给定节点架构 + 启动模式兼容的镜像。
+// FilterCompatible 返回与给定节点架构 + 启动模式兼容的镜像.
 func (c *Catalog) FilterCompatible(arch system.Architecture, mode system.BootMode) []Image {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -129,7 +129,7 @@ func (c *Catalog) FilterCompatible(arch system.Architecture, mode system.BootMod
 	return out
 }
 
-// Get 按 ID 取回镜像。
+// Get 按 ID 取回镜像.
 func (c *Catalog) Get(id string) (Image, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -141,13 +141,13 @@ func (c *Catalog) Get(id string) (Image, bool) {
 	return Image{}, false
 }
 
-// Source 返回镜像清单来源。
+// Source 返回镜像清单来源.
 func (c *Catalog) Source() string { c.mu.RLock(); defer c.mu.RUnlock(); return c.source }
 
-// LoadedAt 返回最近一次加载时间。
+// LoadedAt 返回最近一次加载时间.
 func (c *Catalog) LoadedAt() time.Time { c.mu.RLock(); defer c.mu.RUnlock(); return c.loaded }
 
-// ValidateIndex 校验整张清单。
+// ValidateIndex 校验整张清单.
 func ValidateIndex(idx *Index) error {
 	seen := make(map[string]struct{})
 	for i := range idx.Images {
@@ -162,7 +162,7 @@ func ValidateIndex(idx *Index) error {
 	return nil
 }
 
-// ValidateImage 校验单条镜像条目。
+// ValidateImage 校验单条镜像条目.
 func ValidateImage(img *Image) error {
 	if img.ID == "" {
 		return fmt.Errorf("缺少 id")
@@ -208,7 +208,7 @@ func ValidateImage(img *Image) error {
 	return nil
 }
 
-// IsSupportedFormat 报告 BootSeed 第一版是否支持该镜像格式。
+// IsSupportedFormat 报告 BootSeed 第一版是否支持该镜像格式.
 func IsSupportedFormat(f string) bool {
 	switch strings.ToLower(strings.TrimSpace(f)) {
 	case "raw", "img",
@@ -220,13 +220,13 @@ func IsSupportedFormat(f string) bool {
 	return false
 }
 
-// IsCompatible 报告镜像是否与节点架构 + 启动模式兼容。
+// IsCompatible 报告镜像是否与节点架构 + 启动模式兼容.
 //
-// 第一版规则：
-//  1. 架构必须严格相等。
-//  2. 节点为 UEFI -> 镜像 firmware 必须包含 "uefi"。
-//  3. 节点为 BIOS -> 镜像 firmware 必须包含 "bios"。
-//  4. ARM64 镜像必须包含 "uefi"。
+// 第一版规则:
+//  1. 架构必须严格相等.
+//  2. 节点为 UEFI -> 镜像 firmware 必须包含 "uefi".
+//  3. 节点为 BIOS -> 镜像 firmware 必须包含 "bios".
+//  4. ARM64 镜像必须包含 "uefi".
 func IsCompatible(img Image, arch system.Architecture, mode system.BootMode) bool {
 	a, err := system.NormalizeArchitecture(img.Architecture)
 	if err != nil {
@@ -248,7 +248,7 @@ func IsCompatible(img Image, arch system.Architecture, mode system.BootMode) boo
 	return true
 }
 
-// ResolveURL 把清单中相对 path 与 base URL 拼接为最终下载 URL。
+// ResolveURL 把清单中相对 path 与 base URL 拼接为最终下载 URL.
 func ResolveURL(base, p string) string {
 	base = strings.TrimRight(base, "/")
 	return base + path.Clean("/"+p)

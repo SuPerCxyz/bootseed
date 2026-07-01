@@ -5,7 +5,7 @@ build/ipxe/
 build/alpine/
 build/tmp/
 
-# 数据目录中的二进制产物（保留结构）
+# 数据目录中的二进制产物(保留结构)
 data/tftp/x86/undionly.kpxe
 data/tftp/x86_64/snponly.efi
 data/tftp/aarch64/snponly.efi
@@ -39,5 +39,5 @@ vendor/
 *.swp
 .DS_Store
 
-# 服务端门户运行期状态（bbolt）
+# 服务端门户运行期状态(bbolt)
 data/state/

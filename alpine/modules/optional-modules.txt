@@ -1,19 +1,19 @@
 # BootSeed 可选驱动模块清单
-# 这些模块在部分内核版本中可能不存在；构建脚本遇到缺失时
-# 只会记录到 build/reports/missing-optional-modules.txt 并继续，
-# 绝不会因为缺少这里的模块而让整个 initramfs 构建失败。
+# 这些模块在部分内核版本中可能不存在;构建脚本遇到缺失时
+# 只会记录到 build/reports/missing-optional-modules.txt 并继续,
+# 绝不会因为缺少这里的模块而让整个 initramfs 构建失败.
 #
-# 重要说明：FC HBA（qla2xxx / lpfc）与 NVMe-over-Fabric（nvme_rdma / nvme_fc）
-# 模块仅用于设备识别与硬件信息采集，BootSeed 永远不会自动登录 SAN，
-# 也不会把 FC / iSCSI 多路径设备当作默认部署目标。
+# 重要说明:FC HBA(qla2xxx / lpfc)与 NVMe-over-Fabric(nvme_rdma / nvme_fc)
+# 模块仅用于设备识别与硬件信息采集,BootSeed 永远不会自动登录 SAN,
+# 也不会把 FC / iSCSI 多路径设备当作默认部署目标.
 
 # ---- 老式 HP Smart Array ----
 cciss
 
-# ---- 光纤通道 HBA（仅识别，不自动登录 SAN）----
+# ---- 光纤通道 HBA(仅识别,不自动登录 SAN)----
 qla2xxx
 lpfc
 
-# ---- NVMe over Fabrics（仅识别，不自动登录）----
+# ---- NVMe over Fabrics(仅识别,不自动登录)----
 nvme_rdma
 nvme_fc

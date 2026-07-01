@@ -3,19 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BootSeed · 网络镜像部署</title>
+  <title>BootSeed - 网络镜像部署</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header>
-    <h1>BootSeed</h1>
-    <p class="subtitle">网络镜像部署</p>
+    <div class="brand">
+      <h1>BootSeed</h1>
+      <p class="subtitle">网络镜像部署</p>
+    </div>
   </header>
 
   <main>
     <section class="card" id="context-card">
       <h2>节点信息</h2>
-      <div id="context-grid" class="grid">加载中…</div>
+      <div id="context-grid" class="grid">加载中...</div>
     </section>
 
     <section class="card" id="hardware-card">
@@ -53,8 +55,8 @@
 
     <section class="card" id="deploy-card">
       <h2>部署确认</h2>
-      <div id="confirm-summary" class="mono">请选择镜像与目标磁盘。</div>
-      <label>输入 <strong>ERASE</strong> 以确认擦除目标磁盘：
+      <div id="confirm-summary" class="mono">请选择镜像与目标磁盘.</div>
+      <label>输入 <strong>ERASE</strong> 以确认擦除目标磁盘:
         <input type="text" id="confirm-input" placeholder="ERASE" autocomplete="off">
       </label>
       <label class="inline"><input type="checkbox" id="verify-raw"> 写盘后校验 RAW SHA-256</label>
@@ -71,7 +73,7 @@
       <h2>部署进度</h2>
       <div class="progress-bar"><div id="progress-fill"></div></div>
       <div id="progress-text" class="mono">空闲</div>
-      <button id="post-reboot" class="btn-danger" style="display:none;margin-top:0.6rem;">部署完成，立即重启</button>
+      <button id="post-reboot" class="btn-danger" style="display:none;margin-top:0.6rem;">部署完成,立即重启</button>
     </section>
 
     <div id="toast"></div>

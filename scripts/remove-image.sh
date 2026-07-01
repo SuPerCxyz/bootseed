@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# 从镜像清单 data/http/images/index.json 删除一条镜像记录。
+# 从镜像清单 data/http/images/index.json 删除一条镜像记录.
 #
-# 用法：scripts/remove-image.sh --id <id> [--delete-file] [--yes]
-#   --id          要删除的镜像 id（必填）
+# 用法:scripts/remove-image.sh --id <id> [--delete-file] [--yes]
+#   --id          要删除的镜像 id(必填)
 #   --delete-file 同时删除磁盘上的镜像文件
 #   --yes         跳过确认
 #
-# 原子更新 index.json（写临时文件 + mv），并加锁防并发。
+# 原子更新 index.json(写临时文件 + mv),并加锁防并发.
 
 set -euo pipefail
 
@@ -18,7 +18,7 @@ IMAGES_DIR="${DATA_DIR}/http/images"
 INDEX="${IMAGES_DIR}/index.json"
 LOCK_DIR="${IMAGES_DIR}/.index.lock"
 
-usage() { echo "用法：remove-image.sh --id <id> [--delete-file] [--yes]"; }
+usage() { echo "用法:remove-image.sh --id <id> [--delete-file] [--yes]"; }
 
 ID="" DELETE_FILE=0 ASSUME_YES=0
 while [[ $# -gt 0 ]]; do
@@ -27,12 +27,12 @@ while [[ $# -gt 0 ]]; do
     --delete-file) DELETE_FILE=1; shift ;;
     --yes|-y) ASSUME_YES=1; shift ;;
     -h|--help) usage; exit 0 ;;
-    *) usage; die "未知参数：$1" ;;
+    *) usage; die "未知参数:$1" ;;
   esac
 done
 
 [[ -n "${ID}" ]] || { usage; die "缺少 --id"; }
-[[ -f "${INDEX}" ]] || die "清单不存在：${INDEX}"
+[[ -f "${INDEX}" ]] || die "清单不存在:${INDEX}"
 
 # ---- 获取锁 ----
 acquire_lock() {
@@ -44,7 +44,7 @@ acquire_lock() {
     local waited=0
     until mkdir "${LOCK_DIR}" 2>/dev/null; do
       sleep 1; waited=$((waited + 1))
-      [[ "${waited}" -ge 30 ]] && die "获取目录锁超时：${LOCK_DIR}"
+      [[ "${waited}" -ge 30 ]] && die "获取目录锁超时:${LOCK_DIR}"
     done
     LOCK_MODE="mkdir"
   fi
@@ -59,7 +59,7 @@ acquire_lock
 TARGET_PATH=""
 if command -v jq >/dev/null 2>&1; then
   if ! jq -e --arg id "${ID}" '.images[] | select(.id == $id)' "${INDEX}" >/dev/null 2>&1; then
-    die "未找到镜像 id：${ID}"
+    die "未找到镜像 id:${ID}"
   fi
   TARGET_PATH="$(jq -r --arg id "${ID}" '.images[] | select(.id == $id) | .path // ""' "${INDEX}")"
 else
@@ -74,11 +74,11 @@ for img in data.get("images", []):
         sys.exit(0)
 sys.exit(1)
 PY
-)" || die "未找到镜像 id：${ID}"
+)" || die "未找到镜像 id:${ID}"
 fi
 
 if [[ "${ASSUME_YES}" -ne 1 ]]; then
-  read -r -p "确认从清单删除镜像 '${ID}'？[y/N] " ans
+  read -r -p "确认从清单删除镜像 '${ID}'?[y/N] " ans
   [[ "${ans}" =~ ^[Yy]$ ]] || die "已取消"
 fi
 
@@ -100,17 +100,17 @@ with open(tmp, "w") as f:
 PY
 fi
 mv -f "${TMP}" "${INDEX}"
-log_pass "已从清单删除镜像：${ID}"
+log_pass "已从清单删除镜像:${ID}"
 
 # ---- 可选删除文件 ----
 if [[ "${DELETE_FILE}" -eq 1 && -n "${TARGET_PATH}" ]]; then
-  # path 形如 /images/<basename>，映射到 images 目录。
+  # path 形如 /images/<basename>,映射到 images 目录.
   local_base="$(basename "${TARGET_PATH}")"
   file_path="${IMAGES_DIR}/${local_base}"
   if [[ -f "${file_path}" ]]; then
     rm -f "${file_path}"
-    log_pass "已删除镜像文件：${file_path}"
+    log_pass "已删除镜像文件:${file_path}"
   else
-    log_warn "镜像文件不存在，跳过删除：${file_path}"
+    log_warn "镜像文件不存在,跳过删除:${file_path}"
   fi
 fi

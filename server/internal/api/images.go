@@ -11,7 +11,7 @@ import (
 	"github.com/anomalyco/bootseed/server/internal/imagesvc"
 )
 
-// GET /api/images  |  POST /api/images（按 URL/本地路径添加，需鉴权）
+// GET /api/images  |  POST /api/images(按 URL/本地路径添加,需鉴权)
 func (s *Server) handleImages(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
@@ -34,6 +34,7 @@ func (s *Server) handleImages(w http.ResponseWriter, r *http.Request) {
 			Version      string   `json:"version"`
 			Architecture string   `json:"architecture"`
 			Firmware     []string `json:"firmware"`
+			Description  string   `json:"description"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeErr(w, http.StatusBadRequest, "请求体无效")
@@ -46,7 +47,7 @@ func (s *Server) handleImages(w http.ResponseWriter, r *http.Request) {
 		jobID, err := s.images.StartAdd(imagesvc.AddSpec{
 			Mode: req.Mode, Source: req.Source, ID: req.ID, Name: req.Name,
 			OS: req.OS, Version: req.Version, Architecture: req.Architecture,
-			Firmware: req.Firmware,
+			Firmware: req.Firmware, Description: req.Description,
 		})
 		if err != nil {
 			writeErr(w, http.StatusBadRequest, err.Error())
@@ -58,9 +59,9 @@ func (s *Server) handleImages(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// DELETE /api/images/{id}（需鉴权）
+// DELETE /api/images/{id} | PUT /api/images/{id}(需鉴权)
 func (s *Server) handleImageItem(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodDelete {
+	if r.Method != http.MethodDelete && r.Method != http.MethodPut {
 		writeErr(w, http.StatusMethodNotAllowed, "方法不允许")
 		return
 	}
@@ -72,11 +73,35 @@ func (s *Server) handleImageItem(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusBadRequest, "非法 id")
 		return
 	}
-	if err := s.images.Delete(id); err != nil {
+	if r.Method == http.MethodDelete {
+		if err := s.images.Delete(id); err != nil {
+			writeErr(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"deleted": id})
+		return
+	}
+	var req struct {
+		Name         string   `json:"name"`
+		OS           string   `json:"os"`
+		Version      string   `json:"version"`
+		Architecture string   `json:"architecture"`
+		Firmware     []string `json:"firmware"`
+		Description  string   `json:"description"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeErr(w, http.StatusBadRequest, "请求体无效")
+		return
+	}
+	if err := s.images.Update(id, imagesvc.UpdateSpec{
+		Name: req.Name, OS: req.OS, Version: req.Version,
+		Architecture: req.Architecture, Firmware: req.Firmware,
+		Description: req.Description,
+	}); err != nil {
 		writeErr(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"deleted": id})
+	writeJSON(w, http.StatusOK, map[string]any{"updated": id})
 }
 
 // GET /api/images/jobs/{jobId}
@@ -90,8 +115,8 @@ func (s *Server) handleImageJob(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, job)
 }
 
-// POST /api/images/upload（multipart：file + 元数据字段；需鉴权）
-// 大文件不推荐，但提供该能力。先落临时文件再走与 path 相同的添加流程。
+// POST /api/images/upload(multipart:file + 元数据字段;需鉴权)
+// 大文件不推荐,但提供该能力.先落临时文件再走与 path 相同的添加流程.
 func (s *Server) handleImageUpload(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeErr(w, http.StatusMethodNotAllowed, "方法不允许")
@@ -130,7 +155,7 @@ func (s *Server) handleImageUpload(w http.ResponseWriter, r *http.Request) {
 		Mode: "upload", Source: tmpPath,
 		ID: r.FormValue("id"), Name: r.FormValue("name"), OS: r.FormValue("os"),
 		Version: r.FormValue("version"), Architecture: r.FormValue("architecture"),
-		Firmware: fw,
+		Firmware: fw, Description: r.FormValue("description"),
 	})
 	if err != nil {
 		os.Remove(tmpPath)

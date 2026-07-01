@@ -5,7 +5,7 @@
   --text: #15233b;      /* 深蓝灰文字 */
   --muted: #5a6b86;     /* 次要文字 */
   --accent: #2563eb;    /* 亮蓝主色 */
-  --accent2: #3b82f6;   /* 亮蓝辅色 */
+  --accent2: #4f46e5;   /* 蓝中带少量紫色 */
   --danger: #dc2626;
   --ok: #16a34a;
   --warn: #d97706;
@@ -19,12 +19,16 @@ body {
   line-height: 1.5;
 }
 header {
-  padding: 1.2rem 2rem;
-  background: linear-gradient(90deg, #3b82f6, #60a5fa);
-  box-shadow: 0 2px 8px rgba(37,99,235,0.25);
+  min-height: 116px;
+  padding: 1.35rem 2rem;
+  background: linear-gradient(100deg, #2563eb 0%, #3b82f6 58%, #6366f1 100%);
+  box-shadow: 0 2px 10px rgba(59,130,246,0.28);
+  display: flex;
+  align-items: center;
 }
-header h1 { margin: 0; font-size: 1.8rem; color: #ffffff; }
-.subtitle { margin: 0; color: #e0ecff; }
+header .brand { display: flex; flex-direction: column; justify-content: center; gap: 0.35rem; }
+header h1 { margin: 0; font-size: 1.8rem; color: #ffffff; line-height: 1.1; }
+.subtitle { margin: 0; color: #e7ecff; font-size: 0.95rem; }
 main { padding: 1.5rem; max-width: 1200px; margin: 0 auto; }
 .card {
   background: var(--card);
@@ -36,11 +40,19 @@ main { padding: 1.5rem; max-width: 1200px; margin: 0 auto; }
 }
 .card h2 { margin-top: 0; color: var(--accent); font-size: 1.2rem; }
 .card h3 { color: var(--muted); font-size: 0.95rem; margin: 0.8rem 0 0.3rem; }
-/* 节点信息：固定 2 列，长字段也每行 2 个；窄屏回退单列 */
+/* 节点信息:固定 2 列,长字段也每行 2 个;窄屏回退单列 */
 .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem 1.5rem; }
-.grid div { font-size: 0.9rem; overflow-wrap: anywhere; word-break: break-all; }
-.grid span { color: var(--muted); display: inline-block; min-width: 5.5em; }
+.kv-item {
+  display: grid;
+  grid-template-columns: 7.4rem minmax(0, 1fr);
+  gap: 0.45rem;
+  align-items: start;
+  font-size: 0.9rem;
+}
+.kv-key { color: var(--muted); white-space: nowrap; }
+.kv-value { min-width: 0; overflow-wrap: anywhere; word-break: break-all; }
 @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+@media (max-width: 560px) { .kv-item { grid-template-columns: 6.7rem minmax(0, 1fr); } }
 table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 0.4rem; }
 th, td { padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--border); text-align: left; }
 th { color: var(--muted); font-weight: 600; }
@@ -64,3 +76,6 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 #toast { position: fixed; bottom: 1rem; right: 1rem; }
 .toast-item { background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--accent); padding: 0.6rem 1rem; margin-top: 0.5rem; border-radius: 6px; max-width: 360px; box-shadow: 0 2px 8px rgba(37,99,235,0.15); }
 .toast-item.error { border-left-color: var(--danger); }
+@media (max-width: 680px) {
+  header { min-height: 104px; padding: 1.15rem 1.2rem; }
+}

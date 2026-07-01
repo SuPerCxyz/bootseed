@@ -1,12 +1,12 @@
 # BootSeed Docker Compose
-# 两个服务：
-#   bootseed-pxe     : dnsmasq ProxyDHCP + TFTP（host 网络）
-#   bootseed-server  : 门户后端 + 静态文件服务（替代原 Nginx），含 Range/大文件下载
-# bootseed-builder 仅在构建阶段使用，不在此文件中常驻。
+# 两个服务:
+#   bootseed-pxe     : dnsmasq ProxyDHCP + TFTP(host 网络)
+#   bootseed-server  : 门户后端 + 静态文件服务(替代原 Nginx),含 Range/大文件下载
+# bootseed-builder 仅在构建阶段使用,不在此文件中常驻.
 #
-# 注意：
-#   - 不要在 dnsmasq.conf 里写普通 DHCP 地址池；必须是 ProxyDHCP。
-#   - bootseed-pxe 必须使用 host 网络才能监听 DHCP/PXE 广播。
+# 注意:
+#   - 不要在 dnsmasq.conf 里写普通 DHCP 地址池;必须是 ProxyDHCP.
+#   - bootseed-pxe 必须使用 host 网络才能监听 DHCP/PXE 广播.
 
 services:
   bootseed-pxe:
@@ -33,9 +33,9 @@ services:
       timeout: 5s
       retries: 3
 
-  # 服务端门户 + 静态文件服务：门户 UI、管理 API、节点登记（bbolt 持久化），
-  # 以及 /boot /alpine /images 静态下载（原生 Range，WriteTimeout=0 防慢写截断）。
-  # 对外暴露 HTTP_PORT；boot.ipxe 中的 deploy_server 指向本地址。
+  # 服务端门户 + 静态文件服务:门户 UI,管理 API,节点登记(bbolt 持久化),
+  # 以及 /boot /alpine /images 静态下载(原生 Range,WriteTimeout=0 防慢写截断).
+  # 对外暴露 HTTP_PORT;boot.ipxe 中的 deploy_server 指向本地址.
   bootseed-server:
     image: bootseed/server:latest
     container_name: bootseed-server

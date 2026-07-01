@@ -1,7 +1,7 @@
-// Package hardware 提供节点硬件 / 驱动 / 网络信息的探测。
+// Package hardware 提供节点硬件 / 驱动 / 网络信息的探测.
 //
-// 探测以尽力而为方式实现：在缺少 lspci / ethtool / sysfs 的环境下
-// （例如开发机 / 单元测试）应返回部分结果而不是直接报错。
+// 探测以尽力而为方式实现:在缺少 lspci / ethtool / sysfs 的环境下
+// (例如开发机 / 单元测试)应返回部分结果而不是直接报错.
 package hardware
 
 import (
@@ -14,7 +14,7 @@ import (
 	"strings"
 )
 
-// NetworkInterface 表示一块网卡的探测结果。
+// NetworkInterface 表示一块网卡的探测结果.
 type NetworkInterface struct {
 	Name       string   `json:"name"`
 	MAC        string   `json:"mac"`
@@ -27,7 +27,7 @@ type NetworkInterface struct {
 	PlatformID string   `json:"platform_id,omitempty"`
 }
 
-// StorageController 表示一块 RAID / HBA / NVMe 控制器。
+// StorageController 表示一块 RAID / HBA / NVMe 控制器.
 type StorageController struct {
 	PCIID  string `json:"pci_id,omitempty"`
 	Class  string `json:"class"`
@@ -36,14 +36,14 @@ type StorageController struct {
 	Driver string `json:"driver"`
 }
 
-// UnboundDevice 表示一台没有驱动绑定的关键设备。
+// UnboundDevice 表示一台没有驱动绑定的关键设备.
 type UnboundDevice struct {
 	PCIID string `json:"pci_id,omitempty"`
 	Path  string `json:"path"`
 	Class string `json:"class"`
 }
 
-// Report 是 GET /api/hardware 的整体返回。
+// Report 是 GET /api/hardware 的整体返回.
 type Report struct {
 	KernelVersion      string              `json:"kernel_version"`
 	CPUArchitecture    string              `json:"cpu_architecture"`
@@ -53,7 +53,7 @@ type Report struct {
 	DmesgWarnings      []string            `json:"dmesg_warnings"`
 }
 
-// Collect 收集硬件报告。
+// Collect 收集硬件报告.
 func Collect() *Report {
 	r := &Report{
 		KernelVersion:   readKernel(),
@@ -157,9 +157,9 @@ func readEthtoolFirmware(name string) string {
 	return ""
 }
 
-// collectStorageControllers 扫描 /sys/bus/pci/devices 中的存储控制器。
-// 它使用 PCI class 前缀 0x01 来识别 mass storage。
-// 在 sysfs 不可访问的环境（开发机）下会返回空切片。
+// collectStorageControllers 扫描 /sys/bus/pci/devices 中的存储控制器.
+// 它使用 PCI class 前缀 0x01 来识别 mass storage.
+// 在 sysfs 不可访问的环境(开发机)下会返回空切片.
 func collectStorageControllers() []StorageController {
 	var out []StorageController
 	base := "/sys/bus/pci/devices"
@@ -186,7 +186,7 @@ func collectStorageControllers() []StorageController {
 	return out
 }
 
-// collectUnboundDevices 找出关键 class（network、storage）但没有 driver 链接的 PCI 设备。
+// collectUnboundDevices 找出关键 class(network,storage)但没有 driver 链接的 PCI 设备.
 func collectUnboundDevices() []UnboundDevice {
 	var out []UnboundDevice
 	base := "/sys/bus/pci/devices"

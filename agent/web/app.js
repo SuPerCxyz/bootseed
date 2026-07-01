@@ -1,4 +1,4 @@
-// BootSeed 前端逻辑（无框架，纯原生 JS）。
+// BootSeed 前端逻辑(无框架,纯原生 JS).
 'use strict';
 
 const state = { image: null, disk: null, context: null, evtSource: null, clock: null, autorefresh: null };
@@ -29,7 +29,7 @@ function humanSize(n) {
   return v.toFixed(1) + ' ' + u[i];
 }
 
-// 秒 → "Xh Ym Zs"
+// 秒 -> "Xh Ym Zs"
 function fmtDuration(sec) {
   sec = Math.max(0, Math.floor(sec || 0));
   const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
@@ -38,6 +38,17 @@ function fmtDuration(sec) {
 
 function badge(ok, yes, no) {
   return `<span class="badge ${ok ? 'ok' : 'no'}">${ok ? (yes || '是') : (no || '否')}</span>`;
+}
+function kvRow(key, value) {
+  return `<div class="kv-item"><span class="kv-key">${key}:</span><span class="kv-value">${value || '-'}</span></div>`;
+}
+function renderClock() {
+  const ct = document.getElementById('cur-time');
+  if (ct) ct.textContent = new Date().toLocaleString();
+  const up = document.getElementById('uptime');
+  if (up && state.uptimeBase != null) {
+    up.textContent = fmtDuration(state.uptimeBase + (Date.now() - state.uptimeAt) / 1000);
+  }
 }
 
 async function loadContext() {
@@ -48,7 +59,7 @@ async function loadContext() {
   const g = document.getElementById('context-grid');
   const mem = (c.mem_total_bytes)
     ? `${humanSize(c.mem_available_bytes)} 可用 / ${humanSize(c.mem_total_bytes)}` : '-';
-  // [label, value] —— 固定 2 列；当前时间/运行时长用 span id 由时钟实时刷新
+  // [label, value] -- 固定 2 列;当前时间/运行时长用 span id 由时钟实时刷新
   const rows = [
     ['节点架构', c.node_architecture], ['运行架构', c.runtime_architecture],
     ['uname 架构', c.uname_architecture], ['启动模式', c.boot_mode],
@@ -59,23 +70,17 @@ async function loadContext() {
     ['内存', mem], ['系统启动时间', (c.boot_time || '').replace('T', ' ').replace(/\+.*/, '')],
     ['当前时间', `<span id="cur-time">-</span>`], ['运行时长', `<span id="uptime">-</span>`],
     ['MAC', c.node_mac], ['部署服务端', c.deploy_server],
-    ['UUID', c.node_uuid], ['', ''],
+    ['UUID', c.node_uuid],
   ];
-  g.innerHTML = rows.filter(([k]) => k).map(([k, v]) =>
-    `<div><span>${k}：</span>${v || '-'}</div>`).join('');
+  g.innerHTML = rows.map(([k, v]) => kvRow(k, v)).join('');
+  renderClock();
 }
 
-// 本地时钟：当前时间每秒跳动；运行时长按基准 + 已过秒数递增。
+// 本地时钟:当前时间每秒跳动;运行时长按基准 + 已过秒数递增.
 function startClock() {
   if (state.clock) return;
-  state.clock = setInterval(() => {
-    const ct = document.getElementById('cur-time');
-    if (ct) ct.textContent = new Date().toLocaleString();
-    const up = document.getElementById('uptime');
-    if (up && state.uptimeBase != null) {
-      up.textContent = fmtDuration(state.uptimeBase + (Date.now() - state.uptimeAt) / 1000);
-    }
-  }, 1000);
+  renderClock();
+  state.clock = setInterval(renderClock, 1000);
 }
 
 async function loadHardware() {
@@ -107,7 +112,7 @@ async function loadImages() {
     const tr = document.createElement('tr');
     if (!img.compatible) tr.className = 'incompat';
     tr.innerHTML = `
-      <td>${img.compatible ? `<input type="radio" name="image" value="${img.id}">` : '—'}</td>
+      <td>${img.compatible ? `<input type="radio" name="image" value="${img.id}">` : '-'}</td>
       <td>${img.name}</td><td>${img.os}</td><td>${img.version}</td>
       <td>${img.architecture}</td><td>${(img.firmware || []).join('/')}</td>
       <td>${img.format}</td><td>${humanSize(img.compressed_size)}</td>
@@ -128,7 +133,7 @@ async function loadDisks() {
     const target = d.stable_path || d.path;
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${d.allowed ? `<input type="radio" name="disk" value="${target}">` : '—'}</td>
+      <td>${d.allowed ? `<input type="radio" name="disk" value="${target}">` : '-'}</td>
       <td class="mono">${d.path}</td><td class="mono">${d.stable_path || '-'}</td>
       <td>${d.model || '-'}</td><td class="mono">${d.serial || '-'}</td>
       <td>${humanSize(d.size)}</td><td>${d.tran || '-'}</td>
@@ -150,16 +155,16 @@ async function loadDisks() {
 function updateConfirm() {
   const s = document.getElementById('confirm-summary');
   if (!state.image || !state.disk) {
-    s.textContent = '请选择镜像与目标磁盘。';
+    s.textContent = '请选择镜像与目标磁盘.';
     checkDeployReady();
     return;
   }
   s.textContent =
-    `镜像：${state.image.name} (${state.image.architecture})\n` +
-    `节点架构：${state.context.node_architecture}\n` +
-    `目标磁盘：${state.disk.target}\n` +
-    `型号：${state.disk.model || '-'}  序列号：${state.disk.serial || '-'}\n` +
-    `容量：${humanSize(state.disk.size)}  镜像解压大小：${humanSize(state.image.raw_size)}`;
+    `镜像:${state.image.name} (${state.image.architecture})\n` +
+    `节点架构:${state.context.node_architecture}\n` +
+    `目标磁盘:${state.disk.target}\n` +
+    `型号:${state.disk.model || '-'}  序列号:${state.disk.serial || '-'}\n` +
+    `容量:${humanSize(state.disk.size)}  镜像解压大小:${humanSize(state.image.raw_size)}`;
   checkDeployReady();
 }
 
@@ -170,7 +175,7 @@ function checkDeployReady() {
 }
 
 async function startDeploy() {
-  if (!confirm('确认擦除并部署？此操作不可恢复。')) return;
+  if (!confirm('确认擦除并部署?此操作不可恢复.')) return;
   try {
     await api('/api/deploy', {
       method: 'POST',
@@ -198,7 +203,7 @@ function subscribeEvents() {
   state.evtSource = es;
   es.onmessage = (ev) => {
     const p = JSON.parse(ev.data);
-    // 下载速度：由相邻两帧的 downloaded_bytes 增量估算（后端只统计累计下载量）。
+    // 下载速度:由相邻两帧的 downloaded_bytes 增量估算(后端只统计累计下载量).
     const now = Date.now();
     let dlSpeed = 0;
     if (state.lastDlT && now > state.lastDlT && p.downloaded_bytes >= state.lastDl) {
@@ -218,15 +223,15 @@ function subscribeEvents() {
       es.close();
       document.getElementById('cancel-btn').disabled = true;
       document.getElementById('deploy-btn').disabled = false;
-      // 部署成功后给出醒目的“立即重启”入口
+      // 部署成功后给出醒目的"立即重启"入口
       const pr = document.getElementById('post-reboot');
       if (pr) pr.style.display = (p.stage === 'completed') ? 'inline-block' : 'none';
       loadContext();
-      toast(p.stage === 'completed' ? '部署完成，可点击「立即重启」启动新系统'
+      toast(p.stage === 'completed' ? '部署完成,可点击「立即重启」启动新系统'
         : ('部署结束: ' + p.stage), p.stage !== 'completed');
     }
   };
-  // 仅在部署已结束时关闭；否则让浏览器自动重连，避免瞬时断连导致进度停更。
+  // 仅在部署已结束时关闭;否则让浏览器自动重连,避免瞬时断连导致进度停更.
   es.onerror = () => { if (state.deployDone) es.close(); };
 }
 
@@ -246,18 +251,18 @@ function bind() {
   document.getElementById('deploy-btn').addEventListener('click', startDeploy);
   document.getElementById('cancel-btn').addEventListener('click', () => post('/api/deploy/cancel', '已请求取消'));
   document.getElementById('reboot-btn').addEventListener('click', () => {
-    if (confirm('确认重启节点？')) post('/api/reboot', '正在重启');
+    if (confirm('确认重启节点?')) post('/api/reboot', '正在重启');
   });
   document.getElementById('poweroff-btn').addEventListener('click', () => {
-    if (confirm('确认关机？')) post('/api/poweroff', '正在关机');
+    if (confirm('确认关机?')) post('/api/poweroff', '正在关机');
   });
   const pr = document.getElementById('post-reboot');
   if (pr) pr.addEventListener('click', () => {
-    if (confirm('部署已完成，确认重启进入新系统？')) post('/api/reboot', '正在重启');
+    if (confirm('部署已完成,确认重启进入新系统?')) post('/api/reboot', '正在重启');
   });
 }
 
-// 页面加载/刷新时，若已有部署在进行，自动恢复进度显示。
+// 页面加载/刷新时,若已有部署在进行,自动恢复进度显示.
 async function resumeIfDeploying() {
   try {
     const s = await api('/api/deploy/status');
@@ -267,7 +272,7 @@ async function resumeIfDeploying() {
       document.getElementById('cancel-btn').disabled = false;
       document.getElementById('deploy-btn').disabled = true;
       subscribeEvents();
-      toast('检测到正在进行的部署，已恢复进度显示');
+      toast('检测到正在进行的部署,已恢复进度显示');
     }
   } catch (e) { /* 忽略 */ }
 }
@@ -280,7 +285,7 @@ async function init() {
     await Promise.all([loadHardware(), loadImages(), loadDisks()]);
     await resumeIfDeploying();
   } catch (e) { toast('初始化失败: ' + e.message, true); }
-  // 定时自动刷新节点信息与磁盘（部署进行中由 SSE 驱动，不重复拉取磁盘）。
+  // 定时自动刷新节点信息与磁盘(部署进行中由 SSE 驱动,不重复拉取磁盘).
   state.autorefresh = setInterval(async () => {
     try {
       await loadContext();

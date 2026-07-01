@@ -1,11 +1,11 @@
-// Package disks 探测节点磁盘并执行 BootSeed 的“安全可写盘”策略。
+// Package disks 探测节点磁盘并执行 BootSeed 的"安全可写盘"策略.
 //
-// 设计原则：
-//  1. 只允许 TYPE=disk 的整盘设备。
-//  2. 默认禁止 loop / ram / zram / sr / fd / device-mapper 从属。
-//  3. multipath 顶层默认禁止；从属路径永远禁止。
-//  4. SAN 风险盘默认显示但标记为高风险，不会被自动选择。
-//  5. 写盘必须解析为 /dev/disk/by-id/...，否则默认禁止。
+// 设计原则:
+//  1. 只允许 TYPE=disk 的整盘设备.
+//  2. 默认禁止 loop / ram / zram / sr / fd / device-mapper 从属.
+//  3. multipath 顶层默认禁止;从属路径永远禁止.
+//  4. SAN 风险盘默认显示但标记为高风险,不会被自动选择.
+//  5. 写盘必须解析为 /dev/disk/by-id/...,否则默认禁止.
 package disks
 
 import (
@@ -17,7 +17,7 @@ import (
 	"strings"
 )
 
-// Disk 描述一块磁盘。
+// Disk 描述一块磁盘.
 type Disk struct {
 	Kname        string   `json:"kname"`       // sda / nvme0n1
 	Path         string   `json:"path"`        // /dev/sda
@@ -42,16 +42,16 @@ type Disk struct {
 	Reason       string   `json:"reason,omitempty"`
 }
 
-// EnumerateOptions 控制磁盘过滤策略。
+// EnumerateOptions 控制磁盘过滤策略.
 type EnumerateOptions struct {
 	AllowMultipathTarget  bool
 	AllowUnstableDiskName bool
 }
 
-// Enumerate 调用 lsblk -J -O 输出 JSON 并构建结果。
+// Enumerate 调用 lsblk -J -O 输出 JSON 并构建结果.
 //
-// 当 lsblk 不可用时（开发机）返回空切片但不报错，
-// 调用方应通过 IsLsblkAvailable 自行判断。
+// 当 lsblk 不可用时(开发机)返回空切片但不报错,
+// 调用方应通过 IsLsblkAvailable 自行判断.
 func Enumerate(opts EnumerateOptions) ([]Disk, error) {
 	out, err := exec.Command("lsblk", "-J", "-b", "-O").Output()
 	if err != nil {
@@ -75,7 +75,7 @@ func Enumerate(opts EnumerateOptions) ([]Disk, error) {
 	return disks, nil
 }
 
-// IsLsblkAvailable 是否能调用 lsblk。
+// IsLsblkAvailable 是否能调用 lsblk.
 func IsLsblkAvailable() bool {
 	_, err := exec.LookPath("lsblk")
 	return err == nil
@@ -164,8 +164,8 @@ func buildDisk(d rawDevice, opts EnumerateOptions) Disk {
 	return disk
 }
 
-// flexBool 兼容不同 lsblk 版本：rm/ro/rota 可能输出为布尔(true/false)、
-// 数字(0/1) 或字符串("0"/"1"/"true")。统一解析为 bool。
+// flexBool 兼容不同 lsblk 版本:rm/ro/rota 可能输出为布尔(true/false),
+// 数字(0/1) 或字符串("0"/"1"/"true").统一解析为 bool.
 type flexBool bool
 
 func (b *flexBool) UnmarshalJSON(data []byte) error {
@@ -179,9 +179,9 @@ func (b *flexBool) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// resolveStablePath 调用 udevadm info 查询设备 by-id 链接，找一个稳定路径。
+// resolveStablePath 调用 udevadm info 查询设备 by-id 链接,找一个稳定路径.
 //
-// 优先级：wwn-* > scsi-* > nvme-* > virtio-* > ata-* > 其他。
+// 优先级:wwn-* > scsi-* > nvme-* > virtio-* > ata-* > 其他.
 func resolveStablePath(d Disk) string {
 	out, err := exec.Command("udevadm", "info", "--query=symlink", "--name="+d.Path).Output()
 	if err != nil {
@@ -207,23 +207,23 @@ func guessByIDFromWWN(d Disk) string {
 	return "/dev/disk/by-id/wwn-" + strings.TrimPrefix(d.WWN, "0x")
 }
 
-// decideAllow 综合判断该磁盘是否可作为部署目标。
+// decideAllow 综合判断该磁盘是否可作为部署目标.
 func decideAllow(d Disk, opts EnumerateOptions) (bool, string) {
 	if d.ReadOnly {
 		return false, "磁盘为只读"
 	}
 	if d.Removable {
-		return false, "磁盘可移除（USB / 光驱 / 软驱）"
+		return false, "磁盘可移除(USB / 光驱 / 软驱)"
 	}
 	if len(d.Partitions) > 0 {
-		// 仅作风险提示，不直接拒绝；但 Reason 字段会保留信息
+		// 仅作风险提示,不直接拒绝;但 Reason 字段会保留信息
 	}
 	if d.MultipathTop && !opts.AllowMultipathTarget {
-		return false, "multipath 顶层设备默认禁止，可通过 ALLOW_MULTIPATH_TARGET=true 启用"
+		return false, "multipath 顶层设备默认禁止,可通过 ALLOW_MULTIPATH_TARGET=true 启用"
 	}
 	if d.SANRisk {
-		// SAN 风险盘允许显示但默认禁止，避免误写远端盘
-		return false, "SAN 风险（iSCSI/FC），默认禁止"
+		// SAN 风险盘允许显示但默认禁止,避免误写远端盘
+		return false, "SAN 风险(iSCSI/FC),默认禁止"
 	}
 	if d.Type != "disk" && d.Type != "mpath" {
 		return false, "非整盘设备: " + d.Type
@@ -232,14 +232,14 @@ func decideAllow(d Disk, opts EnumerateOptions) (bool, string) {
 		return false, "设备路径无效"
 	}
 	if d.StablePath == "" && !opts.AllowUnstableDiskName {
-		return false, "缺少 by-id 稳定路径，默认禁止；可通过 ALLOW_UNSTABLE_DISK_NAME=true 启用"
+		return false, "缺少 by-id 稳定路径,默认禁止;可通过 ALLOW_UNSTABLE_DISK_NAME=true 启用"
 	}
 	return true, ""
 }
 
-// MatchTargetDisk 在已枚举的磁盘里找到允许写盘的目标。
+// MatchTargetDisk 在已枚举的磁盘里找到允许写盘的目标.
 //
-// 参数 want 可以是 /dev/disk/by-id/... 也可以是 /dev/sda 一类的内核名（仅在 AllowUnstable 时）。
+// 参数 want 可以是 /dev/disk/by-id/... 也可以是 /dev/sda 一类的内核名(仅在 AllowUnstable 时).
 func MatchTargetDisk(all []Disk, want string, opts EnumerateOptions) (Disk, error) {
 	if want == "" {
 		return Disk{}, fmt.Errorf("缺少目标磁盘")
