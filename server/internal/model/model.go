@@ -117,6 +117,7 @@ type ServerInfo struct {
 	HTTPPort      string                 `json:"http_port"`
 	PXEInterface  string                 `json:"pxe_interface"`
 	PXESubnet     string                 `json:"pxe_subnet"`
+	EnterSecret   string                 `json:"enter_secret,omitempty"`
 	Architectures []string               `json:"architectures"`
 	AlpineVersion string                 `json:"alpine_version"`
 	AgentVersion  string                 `json:"agent_version"`

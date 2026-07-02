@@ -7,7 +7,7 @@
   "initramfs_file": "initramfs-deploy",
   "modloop_file": "modloop",
   "agent_version": "0.1.0",
-  "build_time": "2026-06-30T17:27:50Z",
+  "build_time": "2026-07-02T08:40:29Z",
   "included_runtime_packages": ["bind-tools", "curl", "ethtool", "hdparm", "nvme-cli", "parted", "pciutils", "smartmontools", "sysstat", "tcpdump", "usbutils", "wget"],
   "included_modules": ["e1000", "e1000e", "igb", "ixgbe", "ixgbevf", "i40e", "ice", "tg3", "bnx2", "bnx2x", "bnxt_en", "mlx4_core", "mlx4_en", "mlx5_core", "qede", "qed", "sky2", "r8169", "virtio_net", "vmxnet3", "hv_netvsc", "xen-netfront", "ena", "gve", "nfp", "hinic", "stmmac", "thunder_bgx", "mii", "mdio", "ptp", "pps_core", "crc32", "8021q", "bonding", "bridge", "af_packet", "megaraid_sas", "mpt2sas", "mpt3sas", "smartpqi", "hpsa", "aacraid", "pm80xx", "arcmsr", "3w_sas", "3w_9xxx", "scsi_mod", "sd_mod", "sg", "sr_mod", "ses", "enclosure", "libsas", "scsi_transport_sas", "scsi_transport_fc", "ahci", "libahci", "libata", "ata_piix", "virtio_pci", "virtio_blk", "virtio_scsi", "hv_storvsc", "xen-blkfront", "nvme", "nvme_core", "nvme_fabrics", "nvme_tcp", "cciss", "qla2xxx", "lpfc", "nvme_rdma"],
   "included_firmware_packages": ["linux-firmware-bnx2", "linux-firmware-bnx2x", "linux-firmware-qed", "linux-firmware-qlogic", "linux-firmware-cxgb3", "linux-firmware-cxgb4", "linux-firmware-intel", "linux-firmware-mellanox", "linux-firmware-netronome"]

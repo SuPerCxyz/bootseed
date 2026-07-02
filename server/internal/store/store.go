@@ -4,6 +4,7 @@ package store
 import (
 	"encoding/json"
 	"sort"
+	"strings"
 	"time"
 
 	bolt "go.etcd.io/bbolt"
@@ -59,8 +60,18 @@ func put(tx *bolt.Tx, n *model.Node) error {
 	return tx.Bucket(bucketNodes).Put([]byte(n.UUID), data)
 }
 
+func normalizeNode(in *model.Node) {
+	in.Origin = strings.TrimSpace(in.Origin)
+	if in.Origin != "bootseed-enter" {
+		in.Hostname = ""
+	}
+}
+
 // Register 注册/更新节点基本信息(开机上报).已存在则保留首次时间与部署历史.
+// 节点重新注册意味着重启后再次进入 BootSeed 内存系统,上一次仍标为 "running"
+// 的部署记录必然是硬中断/未上报,自动收敛为 "cancelled" 以让门户显示准确。
 func (s *Store) Register(in model.Node, now time.Time) error {
+	normalizeNode(&in)
 	return s.db.Update(func(tx *bolt.Tx) error {
 		cur, err := s.get(tx, in.UUID)
 		if err != nil {
@@ -91,7 +102,25 @@ func (s *Store) Register(in model.Node, now time.Time) error {
 		cur.DNS = in.DNS
 		cur.LastError = in.LastError
 		cur.LastSeen = now
+		// 收敛卡在 running 的旧记录(硬中断导致 agent 没能上报 end)
+		if len(cur.Deploys) > 0 {
+			d := &cur.Deploys[len(cur.Deploys)-1]
+			if d.Result == "running" {
+				d.EndedAt = now
+				d.Result = "cancelled"
+				if d.Error == "" {
+					d.Error = "节点重启/硬中断,状态自动收敛"
+				}
+			}
+		}
 		return put(tx, cur)
+	})
+}
+
+// Delete 删除单个节点及其部署历史.
+func (s *Store) Delete(uuid string) error {
+	return s.db.Update(func(tx *bolt.Tx) error {
+		return tx.Bucket(bucketNodes).Delete([]byte(uuid))
 	})
 }
 

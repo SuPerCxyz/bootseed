@@ -9,7 +9,8 @@ import (
 func TestParseCmdline(t *testing.T) {
 	cmd := "BOOT_IMAGE=/vmlinuz initrd=initramfs-deploy ip=dhcp " +
 		"deploy_server=http://1.2.3.4:8080 node_arch=x86_64 " +
-		"node_mac=52:54:00:12:34:56 node_uuid=abc-uuid agent_port=8080 quiet"
+		"node_mac=52:54:00:12:34:56 node_uuid=abc-uuid agent_port=8080 " +
+		"bootseed_enter_secret=s3cr3t quiet"
 	m := ParseCmdline(cmd)
 	if m["node_arch"] != "x86_64" {
 		t.Errorf("node_arch = %q", m["node_arch"])
@@ -20,6 +21,9 @@ func TestParseCmdline(t *testing.T) {
 	if m["agent_port"] != "8080" {
 		t.Errorf("agent_port = %q", m["agent_port"])
 	}
+	if m["bootseed_enter_secret"] != "s3cr3t" {
+		t.Errorf("bootseed_enter_secret = %q", m["bootseed_enter_secret"])
+	}
 	if _, ok := m["quiet"]; !ok {
 		t.Errorf("quiet 应被收录")
 	}
@@ -28,7 +32,7 @@ func TestParseCmdline(t *testing.T) {
 func TestBuild_ParsesAll(t *testing.T) {
 	cmd := "node_arch=amd64 deploy_server=http://10.0.0.1:8080 " +
 		"node_mac=AA:BB:CC:DD:EE:FF node_uuid=u-1 agent_port=8080 " +
-		"alpine_version=3.20.3"
+		"alpine_version=3.20.3 bootseed_enter_secret=secret-1"
 	ctx, err := Build(cmd, "0.1.0")
 	if err != nil {
 		t.Fatalf("Build: %v", err)
@@ -47,6 +51,9 @@ func TestBuild_ParsesAll(t *testing.T) {
 	}
 	if ctx.AgentVersion != "0.1.0" {
 		t.Errorf("AgentVersion = %q", ctx.AgentVersion)
+	}
+	if ctx.EnterSecret != "secret-1" {
+		t.Errorf("EnterSecret = %q", ctx.EnterSecret)
 	}
 }
 

@@ -33,6 +33,7 @@ func main() {
 
 	cfg := api.Config{
 		Token:         os.Getenv("PORTAL_TOKEN"),
+		EnterSecret:   os.Getenv("BOOTSEED_ENTER_SECRET"),
 		OnlineTimeout: time.Duration(envInt("NODE_ONLINE_TIMEOUT", 45)) * time.Second,
 		DataRoot:      dataRoot,
 		PXEServerIP:   os.Getenv("PXE_SERVER_IP"),

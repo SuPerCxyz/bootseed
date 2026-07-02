@@ -1,7 +1,10 @@
 // BootSeed 前端逻辑(无框架,纯原生 JS).
 'use strict';
 
-const state = { image: null, disk: null, context: null, evtSource: null, clock: null, autorefresh: null };
+const state = {
+  image: null, disk: null, context: null, evtSource: null, clock: null, autorefresh: null,
+  deployStatus: null, deploySubmitting: false, deployRunning: false, deployDone: false,
+};
 
 function api(path, opts) {
   return fetch(path, opts).then(async (r) => {
@@ -61,8 +64,7 @@ async function loadContext() {
     ? `${humanSize(c.mem_available_bytes)} 可用 / ${humanSize(c.mem_total_bytes)}` : '-';
   // [label, value] -- 固定 2 列;当前时间/运行时长用 span id 由时钟实时刷新
   const rows = [
-    ['节点架构', c.node_architecture], ['运行架构', c.runtime_architecture],
-    ['uname 架构', c.uname_architecture], ['启动模式', c.boot_mode],
+    ['节点架构', c.node_architecture], ['启动模式', c.boot_mode],
     ['任务状态', c.task_state], ['Alpine 版本', c.alpine_version],
     ['内核版本', c.kernel_version], ['Agent 版本', c.agent_version],
     ['节点 IP', c.node_ip], ['子网掩码', c.node_netmask],
@@ -72,6 +74,13 @@ async function loadContext() {
     ['MAC', c.node_mac], ['部署服务端', c.deploy_server],
     ['UUID', c.node_uuid],
   ];
+  if (c.runtime_architecture && c.runtime_architecture !== c.node_architecture) {
+    rows.splice(1, 0, ['运行架构', c.runtime_architecture]);
+  }
+  if (c.uname_architecture && c.uname_architecture !== c.node_architecture &&
+      c.uname_architecture !== c.runtime_architecture) {
+    rows.splice(2, 0, ['uname 架构', c.uname_architecture]);
+  }
   g.innerHTML = rows.map(([k, v]) => kvRow(k, v)).join('');
   renderClock();
 }
@@ -156,7 +165,7 @@ function updateConfirm() {
   const s = document.getElementById('confirm-summary');
   if (!state.image || !state.disk) {
     s.textContent = '请选择镜像与目标磁盘.';
-    checkDeployReady();
+    updateDeployButtons();
     return;
   }
   s.textContent =
@@ -165,18 +174,59 @@ function updateConfirm() {
     `目标磁盘:${state.disk.target}\n` +
     `型号:${state.disk.model || '-'}  序列号:${state.disk.serial || '-'}\n` +
     `容量:${humanSize(state.disk.size)}  镜像解压大小:${humanSize(state.image.raw_size)}`;
-  checkDeployReady();
+  updateDeployButtons();
 }
 
-function checkDeployReady() {
-  const ready = state.image && state.disk &&
-    document.getElementById('confirm-input').value === 'ERASE';
-  document.getElementById('deploy-btn').disabled = !ready;
+function terminalDeployStage(stage) {
+  return ['completed', 'failed', 'cancelled'].includes(stage || '');
+}
+
+function deployStage(status) {
+  if (!status) return '';
+  const taskState = status.task && status.task.state;
+  if (terminalDeployStage(taskState)) return taskState;
+  return taskState || (status.progress && status.progress.stage) || '';
+}
+
+function isDeployRunning(status) {
+  if (!status) return Boolean(state.deployRunning);
+  const stage = deployStage(status);
+  if (terminalDeployStage(stage)) return false;
+  if (typeof status.running === 'boolean') return status.running;
+  return Boolean(status.active) && !['', 'idle'].includes(stage);
+}
+
+function updateDeployButtons() {
+  const deployBtn = document.getElementById('deploy-btn');
+  const cancelBtn = document.getElementById('cancel-btn');
+  const eraseOK = document.getElementById('confirm-input').value === 'ERASE';
+  const ready = Boolean(state.image && state.disk && eraseOK);
+  const running = isDeployRunning(state.deployStatus);
+  cancelBtn.disabled = !running;
+  if (state.deploySubmitting) {
+    deployBtn.disabled = true;
+    deployBtn.textContent = '提交中...';
+    return;
+  }
+  if (running) {
+    deployBtn.disabled = true;
+    deployBtn.textContent = '部署进行中';
+    return;
+  }
+  deployBtn.disabled = !ready;
+  deployBtn.textContent = state.deployDone ? '再次部署' : '开始部署';
 }
 
 async function startDeploy() {
+  if (state.deploySubmitting || isDeployRunning(state.deployStatus)) return;
   if (!confirm('确认擦除并部署?此操作不可恢复.')) return;
   try {
+    state.deploySubmitting = true;
+    state.deployDone = false;
+    // 隐藏上一轮遗留的"部署完成,立即重启"按钮,避免在新部署运行中还亮着(误导 + 409)。
+    const pr = document.getElementById('post-reboot');
+    if (pr) pr.style.display = 'none';
+    updateDeployButtons();
     await api('/api/deploy', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -189,15 +239,21 @@ async function startDeploy() {
       }),
     });
     toast('部署任务已启动');
-    document.getElementById('cancel-btn').disabled = false;
-    document.getElementById('deploy-btn').disabled = true;
     subscribeEvents();
-  } catch (e) { toast('部署失败: ' + e.message, true); }
+  } catch (e) {
+    state.deploySubmitting = false;
+    updateDeployButtons();
+    toast('部署失败: ' + e.message, true);
+  }
 }
 
 function subscribeEvents() {
   if (state.evtSource) state.evtSource.close();
   state.deployDone = false;
+  state.deployRunning = true;
+  state.deploySubmitting = false;
+  state.deployStatus = { active: true, running: true, task: { state: 'preparing' } };
+  updateDeployButtons();
   state.lastDl = 0; state.lastDlT = 0;
   const es = new EventSource('/api/deploy/events');
   state.evtSource = es;
@@ -220,9 +276,15 @@ function subscribeEvents() {
       (p.error ? `\n错误: ${p.error}` : '');
     if (['completed', 'failed', 'cancelled'].includes(p.stage) || p.error) {
       state.deployDone = true;
+      state.deployRunning = false;
+      state.deployStatus = {
+        active: true,
+        running: false,
+        task: { state: p.stage },
+        progress: p,
+      };
       es.close();
-      document.getElementById('cancel-btn').disabled = true;
-      document.getElementById('deploy-btn').disabled = false;
+      updateDeployButtons();
       // 部署成功后给出醒目的"立即重启"入口
       const pr = document.getElementById('post-reboot');
       if (pr) pr.style.display = (p.stage === 'completed') ? 'inline-block' : 'none';
@@ -247,14 +309,22 @@ function bind() {
     catch (e) { toast(e.message, true); }
   });
   document.getElementById('reload-disks').addEventListener('click', loadDisks);
-  document.getElementById('confirm-input').addEventListener('input', checkDeployReady);
+  document.getElementById('confirm-input').addEventListener('input', updateDeployButtons);
   document.getElementById('deploy-btn').addEventListener('click', startDeploy);
   document.getElementById('cancel-btn').addEventListener('click', () => post('/api/deploy/cancel', '已请求取消'));
   document.getElementById('reboot-btn').addEventListener('click', () => {
-    if (confirm('确认重启节点?')) post('/api/reboot', '正在重启');
+    const running = isDeployRunning(state.deployStatus);
+    const msg = running
+      ? '当前有部署正在进行,重启会自动取消该部署(已写数据将 fsync 到目标盘)。确认?'
+      : '确认重启节点?';
+    if (confirm(msg)) post('/api/reboot', '正在重启');
   });
   document.getElementById('poweroff-btn').addEventListener('click', () => {
-    if (confirm('确认关机?')) post('/api/poweroff', '正在关机');
+    const running = isDeployRunning(state.deployStatus);
+    const msg = running
+      ? '当前有部署正在进行,关机会自动取消该部署(已写数据将 fsync 到目标盘)。确认?'
+      : '确认关机?';
+    if (confirm(msg)) post('/api/poweroff', '正在关机');
   });
   const pr = document.getElementById('post-reboot');
   if (pr) pr.addEventListener('click', () => {
@@ -266,11 +336,13 @@ function bind() {
 async function resumeIfDeploying() {
   try {
     const s = await api('/api/deploy/status');
-    const stage = (s.progress && s.progress.stage) || '';
-    const running = s.active && !['', 'idle', 'completed', 'failed', 'cancelled'].includes(stage);
+    state.deployStatus = s;
+    const stage = deployStage(s);
+    const running = isDeployRunning(s);
+    state.deployDone = terminalDeployStage(stage);
+    state.deployRunning = running;
+    updateDeployButtons();
     if (running) {
-      document.getElementById('cancel-btn').disabled = false;
-      document.getElementById('deploy-btn').disabled = true;
       subscribeEvents();
       toast('检测到正在进行的部署,已恢复进度显示');
     }

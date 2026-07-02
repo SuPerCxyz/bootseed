@@ -65,7 +65,7 @@ func (s *Server) handleImageItem(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusMethodNotAllowed, "方法不允许")
 		return
 	}
-	if !s.requireAuth(w, r) {
+	if r.Method == http.MethodPut && !s.requireAuth(w, r) {
 		return
 	}
 	id := strings.TrimPrefix(r.URL.Path, "/api/images/")

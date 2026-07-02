@@ -75,6 +75,7 @@ PXE_SERVER_IP=192.168.100.161
 PXE_SUBNET=192.168.100.0
 HTTP_PORT=8088
 PORTAL_TOKEN=change-me
+BOOTSEED_ENTER_SECRET=change-me-enter-secret
 ```
 
 3. 初始化引导文件和内存系统产物。
@@ -114,13 +115,14 @@ http://<PXE_SERVER_IP>:<HTTP_PORT>/
 ```bash
 curl -fsSL http://<PXE_SERVER_IP>:<HTTP_PORT>/bootseed-enter.sh -o /usr/local/sbin/bootseed-enter
 chmod +x /usr/local/sbin/bootseed-enter
-bootseed-enter --server http://<PXE_SERVER_IP>:<HTTP_PORT>
+bootseed-enter --server http://<PXE_SERVER_IP>:<HTTP_PORT> --secret <BOOTSEED_ENTER_SECRET>
 reboot
 ```
 
 说明：
 
-- 只需要指定 `--server`
+- 需要同时指定 `--server` 和 `--secret`
+- `--secret` 为必填，用于限制谁可以通过三层脚本进入 BootSeed
 - 脚本会采集默认出口网络信息并写入 BootSeed 启动参数
 - BootSeed 启动后会恢复该节点的静态网络并自动向服务端门户注册
 - 若需清理一次性进入配置，可执行：

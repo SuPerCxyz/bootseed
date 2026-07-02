@@ -16,8 +16,12 @@ import (
 func (s *Server) handleNodeProxy(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimPrefix(r.URL.Path, "/api/nodes/")
 	parts := strings.SplitN(path, "/", 3)
-	if len(parts) < 2 || parts[0] == "" {
+	if parts[0] == "" {
 		writeErr(w, http.StatusNotFound, "节点接口不存在")
+		return
+	}
+	if len(parts) == 1 {
+		s.handleNodeDelete(w, r, parts[0])
 		return
 	}
 	uuid, action := parts[0], parts[1]
@@ -38,16 +42,10 @@ func (s *Server) handleNodeProxy(w http.ResponseWriter, r *http.Request) {
 	case "agent-disks":
 		s.proxyNodeJSON(w, r, node, "/api/disks")
 	case "deploy":
-		if !s.requireAuth(w, r) {
-			return
-		}
 		s.proxyNodeJSON(w, r, node, "/api/deploy")
 	case "deploy-status":
 		s.proxyNodeJSON(w, r, node, "/api/deploy/status")
 	case "deploy-cancel":
-		if !s.requireAuth(w, r) {
-			return
-		}
 		s.proxyNodeJSON(w, r, node, "/api/deploy/cancel")
 	default:
 		writeErr(w, http.StatusNotFound, "节点接口不存在")

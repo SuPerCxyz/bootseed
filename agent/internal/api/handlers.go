@@ -142,7 +142,7 @@ func (s *Server) handleDisks(w http.ResponseWriter, r *http.Request) {
 // GET /api/deploy/status
 func (s *Server) handleDeployStatus(w http.ResponseWriter, r *http.Request) {
 	task, ok := s.manager.Snapshot()
-	resp := map[string]any{"active": ok, "task": task}
+	resp := map[string]any{"active": ok, "running": task.State.IsRunning(), "task": task}
 	if t := s.currentTracker(); t != nil {
 		resp["progress"] = t.Snapshot()
 	}
@@ -170,14 +170,13 @@ func (s *Server) handleDeployCancel(w http.ResponseWriter, r *http.Request) {
 }
 
 // POST /api/reboot
+// 如有正在进行的部署,先取消(pipeline 会走 defer fsync,落盘已写数据),
+// 等状态机置为 cancelled 后再执行 reboot——最大程度保护目标盘。
 func (s *Server) handleReboot(w http.ResponseWriter, r *http.Request) {
 	if !requireMethod(w, r, http.MethodPost) {
 		return
 	}
-	if s.manager.IsRunning() {
-		writeError(w, http.StatusConflict, "部署运行中,禁止重启")
-		return
-	}
+	s.ensureCancelledForShutdown()
 	if err := system.Reboot(r.Context()); err != nil {
 		writeError(w, http.StatusInternalServerError, "重启失败: "+err.Error())
 		return
@@ -190,15 +189,47 @@ func (s *Server) handlePoweroff(w http.ResponseWriter, r *http.Request) {
 	if !requireMethod(w, r, http.MethodPost) {
 		return
 	}
-	if s.manager.IsRunning() {
-		writeError(w, http.StatusConflict, "部署运行中,禁止关机")
-		return
-	}
+	s.ensureCancelledForShutdown()
 	if err := system.Poweroff(r.Context()); err != nil {
 		writeError(w, http.StatusInternalServerError, "关机失败: "+err.Error())
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"poweringOff": true})
+}
+
+// ensureCancelledForShutdown 为即将到来的重启/关机做准备:
+// 取消进行中的部署,等待 pipeline 走完 defer fsync 并上报 end;
+// 无论 pipeline 是否已在 runDeploy 里报了 end,再显式上报一次(server 端幂等更新
+// 最后一条 running 记录),避免节点 hard-reboot 后门户看到卡在 running/bytes=0。
+func (s *Server) ensureCancelledForShutdown() {
+	wasRunning := s.manager.IsRunning()
+	if wasRunning {
+		s.manager.Cancel()
+		s.waitCancelled(3 * time.Second)
+	}
+	if wasRunning && s.report != nil {
+		var written int64
+		s.mu.RLock()
+		if s.lastResult != nil {
+			written = s.lastResult.BytesWritten
+		} else if t := s.tracker; t != nil {
+			written = t.Snapshot().WrittenBytes
+		}
+		s.mu.RUnlock()
+		s.report.DeployEnd("cancelled", written, "节点重启/关机前取消")
+	}
+}
+
+// waitCancelled 等待部署真正进入终态(pipeline 走完 defer fsync),避免直接重启造成缓冲丢失。
+// 超时后仍继续 reboot/poweroff,兜底以用户意图为准。
+func (s *Server) waitCancelled(timeout time.Duration) {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		if !s.manager.IsRunning() {
+			return
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
 }
 
 // 引用 deploy 包以确保类型可见(在 deploy.go 中使用).

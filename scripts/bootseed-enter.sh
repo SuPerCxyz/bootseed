@@ -15,12 +15,13 @@ log() { printf '[bootseed-enter] %s\n' "$*" >&2; }
 die() { log "ERROR: $*"; exit 1; }
 
 SERVER_URL=""
+ENTER_SECRET=""
 CLEANUP=0
 
 usage() {
   cat <<'EOF'
 用法:
-  bootseed-enter.sh --server http://<server>:8088
+  bootseed-enter.sh --server http://<server>:8088 --secret <value>
   bootseed-enter.sh --cleanup
 EOF
 }
@@ -29,6 +30,10 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --server)
       SERVER_URL="${2:-}"
+      shift 2
+      ;;
+    --secret)
+      ENTER_SECRET="${2:-}"
       shift 2
       ;;
     --cleanup)
@@ -113,6 +118,8 @@ if [[ "${CLEANUP}" -eq 1 ]]; then
 fi
 
 [[ -n "${SERVER_URL}" ]] || die "必须提供 --server"
+[[ -n "${ENTER_SECRET}" ]] || die "必须提供 --secret"
+[[ "${ENTER_SECRET}" =~ ^[^[:space:]]+$ ]] || die "--secret 不能包含空白字符"
 SERVER_URL="${SERVER_URL%/}"
 
 for cmd in curl ip awk sed grep gzip cpio uname; do
@@ -187,7 +194,7 @@ cat >"${GRUB_SCRIPT}" <<EOF
 #!/bin/sh
 exec tail -n +3 \$0
 menuentry '${GRUB_TITLE}' {
-    linux ${KERNEL_FILE} ${KERNEL_CONSOLE} deploy_server=${SERVER_URL} node_arch=${ARCH} node_mac=${MAC} node_uuid=${UUID} agent_port=${AGENT_PORT} alpine_version= bootseed_origin=bootseed-enter network_device_timeout=${NETWORK_DEVICE_TIMEOUT} storage_device_timeout=${STORAGE_DEVICE_TIMEOUT}
+    linux ${KERNEL_FILE} ${KERNEL_CONSOLE} deploy_server=${SERVER_URL} node_arch=${ARCH} node_mac=${MAC} node_uuid=${UUID} agent_port=${AGENT_PORT} alpine_version= bootseed_origin=bootseed-enter bootseed_enter_secret=${ENTER_SECRET} network_device_timeout=${NETWORK_DEVICE_TIMEOUT} storage_device_timeout=${STORAGE_DEVICE_TIMEOUT}
     initrd ${INITRAMFS_FILE}
 }
 EOF

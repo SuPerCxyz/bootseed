@@ -59,6 +59,7 @@ type RegisterInfo struct {
 	AgentVersion  string   `json:"agent_version"`
 	AgentPort     int      `json:"agent_port"`
 	AgentURL      string   `json:"agent_url"`
+	EnterSecret   string   `json:"enter_secret,omitempty"`
 	Origin        string   `json:"origin"`
 	NetworkMode   string   `json:"network_mode"`
 	NetworkStatus string   `json:"network_status"`

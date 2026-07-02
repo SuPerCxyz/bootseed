@@ -22,6 +22,7 @@ type BootContext struct {
 	UnameArchitecture   system.Architecture // uname -m
 	BootMode            system.BootMode     // 通过 /sys/firmware/efi 推断
 	DeployServer        string              // deploy_server=
+	EnterSecret         string              // bootseed_enter_secret=
 	Origin              string              // bootseed_origin=
 	AgentPort           int                 // agent_port=
 	NodeMAC             string              // node_mac=
@@ -83,6 +84,9 @@ func Build(cmdline string, agentVersion string) (*BootContext, error) {
 
 	if v := kv["deploy_server"]; v != "" {
 		ctx.DeployServer = v
+	}
+	if v := kv["bootseed_enter_secret"]; v != "" {
+		ctx.EnterSecret = v
 	}
 	if v := kv["bootseed_origin"]; v != "" {
 		ctx.Origin = v

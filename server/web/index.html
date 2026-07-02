@@ -16,14 +16,14 @@
 
   <main>
     <section class="card" id="overview-card">
-      <h2><span class="title-main">服务端概览 <span id="health" class="hint">健康检查中...</span></span><span class="title-actions"><button id="token-btn" class="btn-secondary">设置管理口令</button></span></h2>
+      <h2><span class="title-main">服务端概览 <span id="health" class="hint">健康检查中...</span></span></h2>
       <div id="overview" class="grid">加载中...</div>
     </section>
 
     <section class="card" id="images-card">
       <h2>镜像仓库 <button id="add-image-btn" class="btn-primary">添加镜像</button></h2>
       <table id="image-table"><thead><tr>
-        <th>ID</th><th>名称</th><th>OS</th><th>版本</th><th>架构</th><th>固件</th>
+        <th>ID</th><th>名称</th><th>OS</th><th>版本</th><th>架构/固件</th>
         <th>描述</th><th>格式</th><th class="num">压缩大小</th><th class="num">解压大小</th><th style="text-align:right">操作</th>
       </tr></thead><tbody></tbody></table>
     </section>
@@ -53,8 +53,8 @@
         <button id="reload-nodes" class="btn-secondary">刷新</button>
       </div>
       <table id="node-table"><thead><tr>
-        <th>状态</th><th>主机名</th><th>IP</th><th>来源</th><th>网络</th><th>架构</th><th>固件</th><th>UUID</th><th>MAC</th>
-        <th>部署过</th><th>最后结果</th><th>最近活动</th><th style="text-align:right">操作</th>
+        <th>状态</th><th>主机名</th><th>IP</th><th>来源</th><th>网络</th><th>架构/固件</th><th>UUID</th><th>MAC</th>
+        <th>部署过</th><th>结果</th><th>最近活动</th><th style="text-align:right">操作</th>
       </tr></thead><tbody></tbody></table>
     </section>
 
@@ -167,25 +167,6 @@
     </div>
   </div>
 
-  <div class="modal" id="token-modal">
-    <div class="box token-box">
-      <div class="modal-head">
-        <h3>设置管理口令</h3>
-        <button class="modal-x" id="token-x" aria-label="关闭">x</button>
-      </div>
-      <div class="form">
-        <div class="field">
-          <label for="token-input">管理口令</label>
-          <input id="token-input" type="password" autocomplete="off" placeholder="输入用于增删镜像等操作的口令">
-        </div>
-      </div>
-      <div class="modal-foot">
-        <button id="token-cancel" class="btn-secondary">取消</button>
-        <button id="token-save" class="btn-primary">保存</button>
-      </div>
-    </div>
-  </div>
-
   <div class="modal" id="node-deploy-modal">
     <div class="box build-detail-box">
       <div class="modal-head">
@@ -193,31 +174,60 @@
         <button class="modal-x" id="node-deploy-x" aria-label="关闭">x</button>
       </div>
       <div class="form">
-        <div id="node-deploy-summary" class="mono hint"></div>
-        <div class="field-row">
-          <div class="field">
-            <label for="node-image-select">部署镜像</label>
-            <select id="node-image-select"></select>
-          </div>
-          <div class="field">
-            <label for="node-disk-select">安装目标磁盘</label>
-            <select id="node-disk-select"></select>
-          </div>
+        <div id="node-deploy-summary" class="detail-grid compact-grid"></div>
+        <div class="field">
+          <label for="node-image-select">部署镜像</label>
+          <select id="node-image-select"></select>
         </div>
         <div class="field">
-          <label for="node-confirm-input">输入 ERASE 确认执行整盘写入</label>
+          <label for="node-disk-select">安装目标磁盘</label>
+          <select id="node-disk-select"></select>
+        </div>
+        <div class="field">
+          <label for="node-confirm-input">输入 <span class="confirm-keyword">ERASE</span> 确认执行整盘写入</label>
           <input id="node-confirm-input" autocomplete="off" placeholder="输入 ERASE">
         </div>
-        <div class="field">
-          <label class="inline"><input type="checkbox" id="node-verify-raw"> 写入完成后校验 RAW SHA-256</label>
-          <label class="inline"><input type="checkbox" id="node-auto-reboot"> 部署完成后自动重启</label>
+        <div class="field checkbox-list">
+          <label class="check-item" for="node-verify-raw"><input type="checkbox" id="node-verify-raw"> <span>写盘后校验 RAW SHA-256</span></label>
+          <label class="check-item" for="node-auto-reboot"><input type="checkbox" id="node-auto-reboot"> <span>完成后自动重启</span></label>
         </div>
-        <pre id="node-deploy-progress" class="mono build-detail-pre">正在加载部署镜像、目标磁盘和部署状态...</pre>
+        <div id="node-deploy-progress" class="detail-stack">正在加载部署镜像、目标磁盘和部署状态...</div>
       </div>
       <div class="modal-foot">
         <button id="node-deploy-cancel" class="btn-secondary">取消当前部署</button>
         <button id="node-deploy-close" class="btn-secondary">关闭</button>
         <button id="node-deploy-start" class="btn-primary">确认并开始部署</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="confirm-modal">
+    <div class="box token-box">
+      <div class="modal-head">
+        <h3 id="confirm-title">确认操作</h3>
+        <button class="modal-x" id="confirm-x" aria-label="关闭">x</button>
+      </div>
+      <div class="form">
+        <div id="confirm-message" class="mono"></div>
+      </div>
+      <div class="modal-foot">
+        <button id="confirm-cancel" class="btn-secondary">取消</button>
+        <button id="confirm-ok" class="btn-danger">确认删除</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="node-detail-modal">
+    <div class="box build-detail-box">
+      <div class="modal-head">
+        <h3 id="node-detail-title">节点详情</h3>
+        <button class="modal-x" id="node-detail-x" aria-label="关闭">x</button>
+      </div>
+      <div class="form">
+        <div id="node-detail-body" class="detail-stack">加载中...</div>
+      </div>
+      <div class="modal-foot">
+        <button id="node-detail-close" class="btn-secondary">关闭</button>
       </div>
     </div>
   </div>

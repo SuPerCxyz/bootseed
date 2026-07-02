@@ -18,6 +18,7 @@ import (
 // Config 来自环境变量.
 type Config struct {
 	Token         string        // PORTAL_TOKEN,空=管理操作免鉴权
+	EnterSecret   string        // BOOTSEED_ENTER_SECRET,仅用于 bootseed-enter 来源节点注册校验
 	OnlineTimeout time.Duration // NODE_ONLINE_TIMEOUT 秒
 	DataRoot      string        // 挂载的数据根(含 http/ 与 tftp/)
 	PXEServerIP   string
@@ -130,6 +131,7 @@ func (s *Server) handleServerInfo(w http.ResponseWriter, r *http.Request) {
 		HTTPPort:      s.cfg.HTTPPort,
 		PXEInterface:  s.cfg.PXEInterface,
 		PXESubnet:     s.cfg.PXESubnet,
+		EnterSecret:   s.cfg.EnterSecret,
 		Architectures: s.cfg.Architectures,
 		AlpineVersion: s.cfg.AlpineVersion,
 		AgentVersion:  s.cfg.AgentVersion,

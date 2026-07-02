@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/anomalyco/bootseed/agent/internal/bootcontext"
 	"github.com/anomalyco/bootseed/agent/internal/config"
+	"github.com/anomalyco/bootseed/agent/internal/deploy"
 	"github.com/anomalyco/bootseed/agent/internal/images"
 	"github.com/anomalyco/bootseed/agent/internal/system"
 )
@@ -108,6 +110,29 @@ func TestHealth(t *testing.T) {
 	srv.handleHealth(w, r)
 	if w.Code != http.StatusOK {
 		t.Fatalf("期望 200,实际 %d", w.Code)
+	}
+}
+
+// TestDeployStatusReportsRunningSeparately 验证 active 只表示存在任务,终态不应被当成运行中.
+func TestDeployStatusReportsRunningSeparately(t *testing.T) {
+	srv, up := newTestServer(t)
+	defer up.Close()
+
+	if _, err := srv.manager.Acquire(context.Background(), &deploy.Task{ID: "done"}); err != nil {
+		t.Fatalf("acquire deploy task: %v", err)
+	}
+	srv.manager.Finish(deploy.StateCompleted, "")
+
+	r := httptest.NewRequest(http.MethodGet, "/api/deploy/status", nil)
+	w := httptest.NewRecorder()
+	srv.handleDeployStatus(w, r)
+	if w.Code != http.StatusOK {
+		t.Fatalf("期望 200,实际 %d (%s)", w.Code, w.Body.String())
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, `"active":true`) || !strings.Contains(body, `"running":false`) ||
+		!strings.Contains(body, `"state":"completed"`) {
+		t.Fatalf("状态响应不符合预期: %s", body)
 	}
 }
 

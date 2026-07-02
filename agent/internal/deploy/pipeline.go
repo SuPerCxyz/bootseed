@@ -107,22 +107,27 @@ func (p *Pipeline) Run(ctx context.Context) (*Result, error) {
 	if err != nil {
 		return res, fmt.Errorf("打开目标磁盘 %s 失败: %w", p.TargetDevice, err)
 	}
-	defer w.Close()
+	// 无论正常结束还是取消/失败,都尝试 fsync 一次已写部分再关闭,
+	// 保证目标盘不会残留内核缓冲中的未落盘数据(O_SYNC 已经每次同步,这里是双重保险)。
+	defer func() {
+		if syncer, ok := w.(interface{ Sync() error }); ok {
+			_ = syncer.Sync()
+		}
+		_ = w.Close()
+	}()
 
 	written, err := copyWithProgress(ctx, w, rawReader, p.Tracker, rawHash)
+	res.BytesWritten = written
 	if err != nil {
 		return res, fmt.Errorf("写盘失败: %w", err)
 	}
-	res.BytesWritten = written
 
-	// fsync
+	// 显式 fsync(取消路径已由 defer 兜底)
 	p.Tracker.SetStage(string(StateSyncing), "正在 fsync")
 	if syncer, ok := w.(interface{ Sync() error }); ok {
 		_ = syncer.Sync()
 	}
-	if err := w.Close(); err != nil {
-		return res, fmt.Errorf("关闭目标磁盘失败: %w", err)
-	}
+	// 关闭由 defer 统一处理,避免重复关闭。
 
 	res.CompressedSHA256 = hex.EncodeToString(compressedHash.Sum(nil))
 	res.RawSHA256 = hex.EncodeToString(rawHash.Sum(nil))

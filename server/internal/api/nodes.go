@@ -15,11 +15,15 @@ func (s *Server) handleNodeRegister(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusMethodNotAllowed, "方法不允许")
 		return
 	}
-	var in model.Node
-	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+	var req struct {
+		model.Node
+		EnterSecret string `json:"enter_secret"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeErr(w, http.StatusBadRequest, "请求体无效")
 		return
 	}
+	in := req.Node
 	in.UUID = strings.TrimSpace(in.UUID)
 	if in.UUID == "" {
 		in.UUID = strings.TrimSpace(in.MAC) // UUID 缺失时用 MAC 兜底
@@ -27,6 +31,20 @@ func (s *Server) handleNodeRegister(w http.ResponseWriter, r *http.Request) {
 	if in.UUID == "" {
 		writeErr(w, http.StatusBadRequest, "缺少 uuid/mac")
 		return
+	}
+	if strings.TrimSpace(in.Origin) == "bootseed-enter" {
+		if s.cfg.EnterSecret == "" {
+			writeErr(w, http.StatusForbidden, "服务端未配置 bootseed-enter 密钥")
+			return
+		}
+		if strings.TrimSpace(req.EnterSecret) == "" {
+			writeErr(w, http.StatusForbidden, "缺少 bootseed-enter 密钥")
+			return
+		}
+		if req.EnterSecret != s.cfg.EnterSecret {
+			writeErr(w, http.StatusForbidden, "bootseed-enter 密钥无效")
+			return
+		}
 	}
 	if err := s.store.Register(in, time.Now()); err != nil {
 		writeErr(w, http.StatusInternalServerError, "注册失败: "+err.Error())
@@ -104,4 +122,30 @@ func (s *Server) handleNodeList(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"total": len(list), "online": online, "nodes": list,
 	})
+}
+
+func (s *Server) handleNodeDelete(w http.ResponseWriter, r *http.Request, uuid string) {
+	if r.Method != http.MethodDelete {
+		writeErr(w, http.StatusMethodNotAllowed, "方法不允许")
+		return
+	}
+	uuid = strings.TrimSpace(uuid)
+	if uuid == "" {
+		writeErr(w, http.StatusBadRequest, "缺少 uuid")
+		return
+	}
+	node, err := s.store.Get(uuid, time.Now(), s.cfg.OnlineTimeout)
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, "查询节点失败: "+err.Error())
+		return
+	}
+	if node == nil {
+		writeErr(w, http.StatusNotFound, "节点不存在")
+		return
+	}
+	if err := s.store.Delete(uuid); err != nil {
+		writeErr(w, http.StatusInternalServerError, "删除节点失败: "+err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "uuid": uuid})
 }

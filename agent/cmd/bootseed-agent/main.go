@@ -91,6 +91,7 @@ func main() {
 			AgentVersion:  boot.AgentVersion,
 			AgentPort:     listenPort(cfg.ListenAddr),
 			AgentURL:      agentURL(netinfo.IP, cfg.ListenAddr),
+			EnterSecret:   boot.EnterSecret,
 			Origin:        bootOrigin(boot.Origin),
 			NetworkMode:   firstNonEmpty(netStatus.Mode, "dhcp"),
 			NetworkStatus: firstNonEmpty(netStatus.Status, "ok"),
