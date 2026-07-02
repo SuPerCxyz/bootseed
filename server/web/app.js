@@ -189,7 +189,7 @@ async function loadServerInfo() {
     ['PXE 网卡', c.pxe_interface], ['PXE 子网', c.pxe_subnet],
     ['支持架构', (c.architectures || []).join(', ')], ['Alpine 版本', c.alpine_version],
     ['Agent 版本', c.agent_version], ['iPXE 版本', c.ipxe_ref],
-    ['进入密钥', secretValue(c.enter_secret)],
+    ['脚本启动密钥', secretValue(c.enter_secret)],
     ['当前时间', '<span id="server-time">-</span>'],
   ];
   g.innerHTML = rows.map(([k, v]) => kvRow(k, v)).join('');
