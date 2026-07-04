@@ -162,7 +162,7 @@ jobs:
             alpine/build-initramfs.sh "${{ matrix.arch }}"
 
       - name: Upload initramfs artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: alpine-${{ matrix.arch }}
           path: |
