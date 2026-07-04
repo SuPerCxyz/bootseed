@@ -76,7 +76,8 @@ jobs:
           fi
 
           full_tags=""
-          for registry_prefix in "docker.io/${DOCKERHUB_USER}" "ghcr.io/${GITHUB_REPOSITORY_OWNER}"; do
+          ghcr_owner="${GITHUB_REPOSITORY_OWNER,,}"
+          for registry_prefix in "docker.io/${DOCKERHUB_USER}" "ghcr.io/${ghcr_owner}"; do
             for tag in "${short_tags[@]}"; do
               full_tags="${full_tags}${registry_prefix}/${{ matrix.image_name }}:${tag}"$'\n'
             done
