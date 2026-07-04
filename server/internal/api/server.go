@@ -72,6 +72,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/images/jobs/", s.handleImageJob)     // GET 任务进度
 	mux.HandleFunc("/api/images/upload", s.handleImageUpload) // POST 上传(需鉴权)
 
+	// 登录
+	mux.HandleFunc("/api/login", s.loginHandler)
+
 	// 静态下载目录(原 Nginx 职责):/boot /alpine /images -> /data/http/...
 	// 不做 StripPrefix:请求 /boot/boot.ipxe 直接解析为 httpRoot + /boot/boot.ipxe.
 	// http.FileServer 原生支持 Range,且 WriteTimeout=0 可避免慢客户端大镜像被截断.
@@ -81,8 +84,9 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("/alpine/", fs)
 	mux.Handle("/images/", fs)
 
+	// 门户静态页面:需要登录(免鉴权模式除外)
 	if s.webFS != nil {
-		mux.Handle("/", http.FileServer(http.FS(s.webFS)))
+		mux.Handle("/", s.portalHandler(http.FileServer(http.FS(s.webFS))))
 	}
 	return mux
 }
@@ -112,7 +116,43 @@ func (s *Server) authOK(r *http.Request) bool {
 	if r.Header.Get("X-Portal-Token") == s.cfg.Token {
 		return true
 	}
+	if c, _ := r.Cookie("portal_token"); c != nil && c.Value == s.cfg.Token {
+		return true
+	}
 	return false
+}
+
+// loginHandler 处理登录请求.GET 返回登录页面,POST 校验口令并设 cookie.
+func (s *Server) loginHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		var body struct {
+			Token string `json:"token"`
+		}
+		if json.NewDecoder(r.Body).Decode(&body) != nil || body.Token == "" {
+			writeErr(w, http.StatusBadRequest, "请输入口令")
+			return
+		}
+		if s.cfg.Token != "" && body.Token != s.cfg.Token {
+			writeErr(w, http.StatusUnauthorized, "口令错误")
+			return
+		}
+		http.SetCookie(w, &http.Cookie{
+			Name: "portal_token", Value: body.Token,
+			Path: "/", HttpOnly: true, SameSite: http.SameSiteLaxMode,
+			MaxAge: 86400 * 7,
+		})
+		writeJSON(w, http.StatusOK, map[string]string{"ok": "已验证"})
+		return
+	}
+	// GET: 返回登录页面
+	loginHTML, err := fs.ReadFile(s.webFS, "login.html")
+	if err != nil {
+		http.Error(w, "login page not found", http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(loginHTML)
 }
 
 func (s *Server) requireAuth(w http.ResponseWriter, r *http.Request) bool {
@@ -121,6 +161,17 @@ func (s *Server) requireAuth(w http.ResponseWriter, r *http.Request) bool {
 		return false
 	}
 	return true
+}
+
+// portalHandler 包装门户静态文件 handler:免鉴权模式或已认证放行,否则重定向到登录页.
+func (s *Server) portalHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if s.cfg.Token == "" || s.authOK(r) {
+			next.ServeHTTP(w, r)
+			return
+		}
+		http.Redirect(w, r, "/api/login", http.StatusFound)
+	})
 }
 
 // GET /api/server-info

@@ -5,5 +5,5 @@ import "embed"
 
 // Files 内嵌门户前端与辅助脚本。
 //
-//go:embed index.html app.js style.css bootseed-enter.sh
+//go:embed index.html login.html app.js style.css bootseed-enter.sh
 var Files embed.FS
