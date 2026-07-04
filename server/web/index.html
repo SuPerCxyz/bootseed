@@ -12,6 +12,9 @@
       <h1>BootSeed 服务端门户</h1>
       <p class="subtitle">镜像仓库 / 内存系统 / 节点列表 总览与管理</p>
     </div>
+    <div class="header-actions">
+      <button id="token-btn" class="btn-secondary" title="设置管理口令">🔑</button>
+    </div>
   </header>
 
   <main>
@@ -228,6 +231,23 @@
       </div>
       <div class="modal-foot">
         <button id="node-detail-close" class="btn-secondary">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="token-modal">
+    <div class="box">
+      <div class="modal-head">
+        <h3>管理口令</h3>
+        <button class="modal-x" id="token-x" aria-label="关闭">x</button>
+      </div>
+      <div class="form">
+        <label for="token-input">请输入 PORTAL_TOKEN（如未设置则留空）</label>
+        <input id="token-input" type="password" placeholder="管理口令" autocomplete="off">
+      </div>
+      <div class="modal-foot">
+        <button id="token-cancel" class="btn-secondary">取消</button>
+        <button id="token-save" class="btn-primary">保存</button>
       </div>
     </div>
   </div>

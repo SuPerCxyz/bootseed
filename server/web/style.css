@@ -8,8 +8,9 @@ body { margin: 0; font-family: system-ui, "PingFang SC", "Microsoft YaHei", sans
   background: var(--bg); color: var(--text); line-height: 1.5; }
 header { min-height: 96px; padding: 0.95rem 2rem; background:
   linear-gradient(100deg, #2563eb 0%, #3b82f6 58%, #6366f1 100%);
-  box-shadow: 0 2px 10px rgba(59,130,246,0.28); display: flex; align-items: center; }
+  box-shadow: 0 2px 10px rgba(59,130,246,0.28); display: flex; align-items: center; justify-content: space-between; }
 header .brand { display: flex; flex-direction: column; justify-content: center; gap: 0.35rem; }
+header .header-actions { display: flex; align-items: center; gap: 0.5rem; }
 header h1 { margin: 0; font-size: 1.8rem; color: #fff; line-height: 1.1; }
 header .subtitle { margin: 0; color: #e7ecff; font-size: 0.95rem; }
 main { padding: 1.5rem; max-width: 1280px; margin: 0 auto; }
