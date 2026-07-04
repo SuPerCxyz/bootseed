@@ -1,4 +1,4 @@
-name: Build and Publish Docker Images
+name: Build and Publish
 
 on:
   push:
@@ -7,12 +7,18 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      alpine_add_packages:
+        description: 'Extra APK packages for initramfs (space-separated)'
+        required: false
+        default: ''
 
 permissions:
   contents: read
+  packages: write
 
 jobs:
-  publish:
+  push-images:
     if: github.ref_type == 'tag' || github.ref_name == github.event.repository.default_branch
     runs-on: ubuntu-latest
     strategy:
@@ -42,35 +48,44 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Compute image tags
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image tags (dual registry)
         id: tags
         shell: bash
         env:
           GITHUB_REF_NAME: ${{ github.ref_name }}
           GITHUB_REF_TYPE: ${{ github.ref_type }}
+          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USERNAME }}
         run: |
           set -euo pipefail
-          image="docker.io/superc/${{ matrix.image_name }}"
+          declare -a short_tags
 
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
-            version_tag="${GITHUB_REF_NAME}"
-            {
-              echo "tags<<EOF"
-              echo "${image}:${version_tag}"
-              echo "${image}:latest"
-              echo "EOF"
-            } >> "${GITHUB_OUTPUT}"
+            short_tags+=("${GITHUB_REF_NAME}" "latest")
             echo "channel=release" >> "${GITHUB_OUTPUT}"
           else
             timestamp="$(date -u +%Y%m%d%H%M)"
-            {
-              echo "tags<<EOF"
-              echo "${image}:${timestamp}"
-              echo "${image}:dev-latest"
-              echo "EOF"
-            } >> "${GITHUB_OUTPUT}"
+            short_tags+=("${timestamp}" "dev-latest")
             echo "channel=dev" >> "${GITHUB_OUTPUT}"
           fi
+
+          full_tags=""
+          for registry_prefix in "docker.io/${DOCKERHUB_USER}" "ghcr.io/${GITHUB_REPOSITORY_OWNER}"; do
+            for tag in "${short_tags[@]}"; do
+              full_tags="${full_tags}${registry_prefix}/${{ matrix.image_name }}:${tag}"$'\n'
+            done
+          done
+          {
+            echo "tags<<EOF"
+            echo -n "$full_tags"
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
 
       - name: Build and push image
         uses: docker/build-push-action@v6
@@ -85,3 +100,67 @@ jobs:
             org.opencontainers.image.description=BootSeed container image
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
+
+  build-initramfs:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64, aarch64]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Build bootseed-agent (${{ matrix.arch }})
+        run: |
+          GOARCH_MAP='{"x86_64":"amd64","aarch64":"arm64"}'
+          goarch=$(echo "$GOARCH_MAP" | jq -r '.[${{ matrix.arch }}]')
+          mkdir -p build/agent
+          cd agent
+          CGO_ENABLED=0 GOOS=linux GOARCH="${goarch}" \
+            go build -trimpath -ldflags "-s -w -X main.version=ci" \
+            -o ../build/agent/bootseed-agent-${{ matrix.arch }} ./cmd/bootseed-agent
+
+      - name: Build builder image
+        run: |
+          docker build -t bootseed-builder:latest \
+            -f alpine/Dockerfile.builder alpine
+
+      - name: Prepare Alpine kernel and modloop (${{ matrix.arch }})
+        env:
+          ALPINE_BRANCH: v3.20
+        run: |
+          mkdir -p "data/http/alpine/${{ matrix.arch }}"
+          bash scripts/prepare-alpine.sh "${{ matrix.arch }}"
+
+      - name: Build initramfs (${{ matrix.arch }})
+        env:
+          ALPINE_BRANCH: v3.20
+          ALPINE_VERSION: 3.20.3
+          AGENT_VERSION: ci
+          CUSTOM_PACKAGES: ${{ inputs.alpine_add_packages || '' }}
+        run: |
+          docker run --rm \
+            -e BUILD_DIR=/work/build \
+            -e DATA_DIR=/work/data \
+            -e ALPINE_BRANCH="${ALPINE_BRANCH}" \
+            -e ALPINE_VERSION="${ALPINE_VERSION}" \
+            -e AGENT_VERSION="${AGENT_VERSION}" \
+            -e CUSTOM_PACKAGES="${CUSTOM_PACKAGES}" \
+            -v "$(pwd):/work" -w /work \
+            bootseed-builder:latest \
+            alpine/build-initramfs.sh "${{ matrix.arch }}"
+
+      - name: Upload initramfs artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: alpine-${{ matrix.arch }}
+          path: |
+            data/http/alpine/${{ matrix.arch }}/
+          retention-days: 30

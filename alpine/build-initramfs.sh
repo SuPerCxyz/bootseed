@@ -21,6 +21,8 @@ readonly SCRIPT_DIR
 readonly MODULES_DIR="${SCRIPT_DIR}/modules"
 readonly OVERLAY_DIR="${SCRIPT_DIR}/overlay"
 readonly PACKAGES_FILE="${SCRIPT_DIR}/packages.yaml"
+readonly PACKAGES_EXTRA_FILE="${SCRIPT_DIR}/packages-extra.yaml"
+readonly CUSTOM_PACKAGES="${CUSTOM_PACKAGES:-}"
 
 # 设备等待超时(秒),优先取构建环境变量,否则用规范默认值.
 readonly NET_TIMEOUT="${NETWORK_DEVICE_TIMEOUT:-60}"
@@ -152,34 +154,49 @@ build_staging_userspace() {
 
 load_runtime_packages() {
 	[ -f "$PACKAGES_FILE" ] || die "缺少工具配置文件: $PACKAGES_FILE"
-	python3 - "$PACKAGES_FILE" "$ARCH" <<'PYEOF'
+	python3 - "$PACKAGES_FILE" "$PACKAGES_EXTRA_FILE" "$ARCH" <<'PYEOF'
 import sys
 from pathlib import Path
 
 import yaml
 
-path = Path(sys.argv[1])
-arch = sys.argv[2]
-with path.open("r", encoding="utf-8") as fh:
-    data = yaml.safe_load(fh) or {}
+def load_one(path, label, arch):
+    if not path.exists():
+        return [], set()
+    with path.open("r", encoding="utf-8") as fh:
+        data = yaml.safe_load(fh) or {}
 
-default = data.get("default", [])
-architectures = data.get("architectures", {})
-arch_pkgs = architectures.get(arch, [])
+    default = data.get("default", [])
+    architectures = data.get("architectures", {})
+    arch_pkgs = architectures.get(arch, [])
 
-def validate(name, value):
-    if value is None:
-        return []
-    if not isinstance(value, list) or not all(isinstance(i, str) and i.strip() for i in value):
-        raise SystemExit(f"{name} 必须是非空字符串数组")
-    return [i.strip() for i in value]
+    def validate(name, value):
+        if value is None:
+            return []
+        if not isinstance(value, list) or not all(isinstance(i, str) and i.strip() for i in value):
+            raise SystemExit(f"{label}: {name} 必须是非空字符串数组")
+        return [i.strip() for i in value]
 
-packages = []
-seen = set()
-for item in validate("default", default) + validate(f"architectures.{arch}", arch_pkgs):
-    if item not in seen:
-        seen.add(item)
-        packages.append(item)
+    pkgs = []
+    seen = set()
+    for item in validate("default", default) + validate(f"architectures.{arch}", arch_pkgs):
+        if item not in seen:
+            seen.add(item)
+            pkgs.append(item)
+    return pkgs, seen
+
+base_path = Path(sys.argv[1])
+extra_path = Path(sys.argv[2])
+arch = sys.argv[3]
+
+packages, seen = load_one(base_path, base_path.name, arch)
+
+if extra_path.exists():
+    extra_pkgs, _ = load_one(extra_path, extra_path.name, arch)
+    for pkg in extra_pkgs:
+        if pkg not in seen:
+            seen.add(pkg)
+            packages.append(pkg)
 
 for item in packages:
     print(item)
@@ -191,6 +208,11 @@ install_runtime_tools() {
 	local -a args pkgs
 	mapfile -t args < <(apk_args "$STAGING")
 	mapfile -t pkgs < <(load_runtime_packages)
+	if [[ -n "$CUSTOM_PACKAGES" ]]; then
+		for pkg in $CUSTOM_PACKAGES; do
+			pkgs+=("$pkg")
+		done
+	fi
 	[ "${#pkgs[@]}" -gt 0 ] || { log_warn "packages.yaml 未配置任何工具包"; return 0; }
 	apk "${args[@]}" add "${pkgs[@]}" \
 		|| die "安装运行期工具包失败(请检查 ${PACKAGES_FILE} 中的包名是否存在)"
