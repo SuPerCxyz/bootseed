@@ -219,6 +219,20 @@ make validate-architectures
 > 运行期工具包由 `alpine/packages.yaml` 定义;包名不存在会让构建直接失败.
 > 额外二进制,固件或脚本可放入 `data/vendor-tools/`,其中根目录文件会复制到
 > `/usr/local/bin/`,`common/` 与架构子目录会按 rootfs overlay 原样注入.
+>
+> **自定义工具包**有三种方式:
+>
+> 1. **`alpine/packages-extra.yaml`** — 与 `packages.yaml` 同格式(支持
+>    `default` 和 `architectures.<arch>` 字段),构建时自动合并去重,随仓库
+>    版本控制,适合团队共享的额外包.
+> 2. **环境变量 `CUSTOM_PACKAGES`** — 空格分隔的包名,在本地构建时传入:
+>    ```bash
+>    CUSTOM_PACKAGES="vim htop iperf3" make build-initramfs
+>    ```
+> 3. **`alpine_add_packages`(CI workflow_dispatch)** — 手动触发 GitHub
+>    Actions 构建 initramfs 时在输入框填写空格分隔的包名.
+>
+> 包名必须存在于 Alpine `$(ALPINE_BRANCH)` 仓库中,否则构建失败.
 
 ### 4.3 构建后校验
 
